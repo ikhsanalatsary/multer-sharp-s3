@@ -1,13 +1,16 @@
 import * as sharp from 'sharp'
-import { SharpOptions } from './types'
+import { ResizeOption, SharpOptions } from './types'
 
 export default transformer
 
-function transformer(options: SharpOptions): sharp.SharpInstance {
+function transformer(
+  options: SharpOptions,
+  size: ResizeOption
+): sharp.SharpInstance {
   let imageStream = sharp()
   for (const [key, value] of Object.entries(options)) {
     if (value) {
-      imageStream = resolveImageStream(key, value, imageStream)
+      imageStream = resolveImageStream(key, value, size, imageStream)
     }
   }
   return imageStream
@@ -30,9 +33,9 @@ const validateValue = (value) => {
   }
   return value
 }
-const resolveImageStream = (key, value, imageStream) => {
+const resolveImageStream = (key, value, size, imageStream) => {
   if (key === 'resize') {
-    imageStream = imageStream.resize(key.width, key.height, key.option)
+    imageStream = imageStream.resize(size.width, size.height, size.options)
   } else if (key === 'crop') {
     imageStream = imageStream[key](value)
   } else if (key === 'toFormat') {

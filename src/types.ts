@@ -16,7 +16,7 @@ import { S3 } from 'aws-sdk'
 export interface Size {
   width?: number
   height?: number
-  option?: ResizeOptions
+  options?: ResizeOptions
 }
 
 export interface Sharpen {
@@ -35,15 +35,15 @@ export interface Format {
   options?: OutputOptions | JpegOptions | PngOptions
 }
 
-interface ExtendSize {
-  suffix: string
+export interface ExtendSize {
+  suffix?: string
 }
 
 type SharpOption<T = string> = void | T
 
-type ResizeOption =
+export type ResizeOption =
   | SharpOption<Size & ExtendSize>
-  | SharpOption<Size & ExtendSize>[]
+  | Array<SharpOption<Size & ExtendSize>>
 
 export interface SharpOptions {
   resize?: ResizeOption

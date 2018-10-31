@@ -16,7 +16,12 @@
         "no-console": [
             false
         ],
-        "no-shadowed-variable": false
+        "no-shadowed-variable": false,
+        "only-arrow-functions": false,
+        "interface-name" : [true, "never-prefix"],
+        "object-literal-sort-keys": false,
+        "ordered-imports": false,
+        "max-line-length": [true, 500]
     },
     "rulesDirectory": []
 }
