@@ -7,9 +7,12 @@ import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from "./get-filename";
 import { S3StorageOptions, SharpOptions, ExtendSize } from './types'
+import { Result } from 'range-parser';
 
 type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
 type MapResult = ManagedUpload.SendData & ExtendResult
+type Metadata = { format: string }
+type EndResult = ManagedUpload.SendData & Metadata
 interface S3Storage {
   opts: S3StorageOptions
   sharpOpts: SharpOptions
@@ -162,22 +165,31 @@ class S3Storage implements StorageEngine {
       const resizerStream = transformer(sharpOpts, sharpOpts.resize)
       params.Body = stream.pipe(resizerStream)
       const meta = { stream: params.Body }
-      const meta$: Observable<{ format: string }> = from(meta.stream.metadata())
-      meta$.subscribe((metadata) => {
-        params.ContentType = opts.ContentType || metadata.format
-        const upload = opts.s3.upload(params)
-        upload.on('httpUploadProgress', function(ev) {
-          if (ev.total) {
-            currentSize = ev.total
-          }
-        })
-        const upload$ = from(upload.promise())
-        upload$.subscribe((result) => {
+      const meta$: Observable<Metadata> = from(meta.stream.metadata())
+      meta$
+        .pipe( map((metadata) => {
+            params.ContentType = opts.ContentType || metadata.format
+            return metadata
+          }), mergeMap((metadata) => {
+            const upload = opts.s3.upload(params)
+            upload.on('httpUploadProgress', function(ev) {
+              if (ev.total) {
+                currentSize = ev.total
+              }
+            })
+            const upload$ = from(new Promise((resolve, reject) => {
+                upload.promise().then((res) => {
+                  resolve({ ...res, format: metadata.format })
+                }, reject)
+              }))
+            return upload$
+          }) )
+        .subscribe((result: EndResult) => {
           cb(null, {
             Size: currentSize,
             Bucket: opts.Bucket,
             ACL: opts.ACL,
-            ContentType: opts.ContentType || metadata.format,
+            ContentType: opts.ContentType || result.format,
             ContentDisposition: opts.ContentDisposition,
             StorageClass: opts.StorageClass,
             ServerSideEncryption: opts.ServerSideEncryption,
@@ -187,7 +199,6 @@ class S3Storage implements StorageEngine {
             Key: result.Key,
           })
         }, cb)
-      }, cb)
     }
   }
 
