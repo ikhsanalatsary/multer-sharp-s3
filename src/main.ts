@@ -1,4 +1,4 @@
-import { forkJoin, from, Observable } from 'rxjs'
+import { from, Observable } from 'rxjs'
 import { map, mergeMap, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
