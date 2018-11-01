@@ -29,7 +29,7 @@ class S3Storage implements StorageEngine {
       throw new Error('You have to specify bucket for AWS S3 to work.')
     }
 
-    if (!options.Key || typeof options.Key !== 'string') {
+    if (!options.Key) {
       this._getKey = defaultKey
     }
 
@@ -40,7 +40,7 @@ class S3Storage implements StorageEngine {
   public _handleFile(req, file, cb) {
     const { opts, sharpOpts } = this
     const { stream } = file
-    if (!opts.Key || typeof opts.Key !== 'string') {
+    if (!opts.Key || typeof opts.Key === 'function') {
       this._getKey(req, file, (fileErr, Key) => {
         let params = {
           Bucket: opts.Bucket,
@@ -153,21 +153,7 @@ class S3Storage implements StorageEngine {
           toArray()
         )
         .subscribe((res) => {
-          const mapArrayToObject = res.reduce((acc, curr: MapResult) => {
-            acc[curr.suffix] = {}
-            acc[curr.suffix].Location = curr.Location
-            acc[curr.suffix].Key = curr.Key
-            acc[curr.suffix].Size = curr.currentSize
-            acc[curr.suffix].Bucket = curr.Bucket
-            acc[curr.suffix].ACL = opts.ACL
-            acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
-            acc[curr.suffix].ContentDisposition = opts.ContentDisposition
-            acc[curr.suffix].StorageClass = opts.StorageClass
-            acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
-            acc[curr.suffix].Metadata = opts.Metadata
-            acc[curr.suffix].ETag = curr.ETag
-            return acc
-          }, {})
+          const mapArrayToObject = res.reduce(this._iterator.bind(this), {})
 
           cb(null, mapArrayToObject)
         }, cb)
@@ -203,6 +189,23 @@ class S3Storage implements StorageEngine {
         }, cb)
       }, cb)
     }
+  }
+
+  private _iterator(acc, curr: MapResult) {
+    const { opts } = this
+    acc[curr.suffix] = {}
+    acc[curr.suffix].Location = curr.Location
+    acc[curr.suffix].Key = curr.Key
+    acc[curr.suffix].Size = curr.currentSize
+    acc[curr.suffix].Bucket = curr.Bucket
+    acc[curr.suffix].ACL = opts.ACL
+    acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
+    acc[curr.suffix].ContentDisposition = opts.ContentDisposition
+    acc[curr.suffix].StorageClass = opts.StorageClass
+    acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
+    acc[curr.suffix].Metadata = opts.Metadata
+    acc[curr.suffix].ETag = curr.ETag
+    return acc
   }
 }
 
