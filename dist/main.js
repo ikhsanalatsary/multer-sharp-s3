@@ -89,7 +89,6 @@ class S3Storage {
             };
             const eachUpload = (size) => {
                 const { Body, ContentType } = size;
-                let currentSize = { [size.suffix]: 0 };
                 let newParams = Object.assign({}, params, { Body,
                     ContentType, Key: `${params.Key}-${size.suffix}` });
                 const upload = opts.s3.upload(newParams);
