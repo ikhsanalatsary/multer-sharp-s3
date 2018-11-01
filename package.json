@@ -34,13 +34,13 @@
     "multer": "^1.4.1",
     "prettier": "^1.14.3",
     "supertest": "^3.3.0",
+    "ts-jest": "^23.10.4",
     "ts-lint": "^4.5.1",
     "typescript": "^3.1.4"
   },
   "dependencies": {
     "rxjs": "^6.3.3",
     "sharp": "0.20.8",
-    "ts-jest": "^23.10.4",
     "yarn.lock": "^0.0.1-security"
   },
   "jest": {
