@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceRoot": "src",
+    "outDir": "dist",
+    "watch": true,
+    "types": [
+      "node",
+      "jest",
+      "core-js"
+    ],
+    "sourceMap": true,
+    "lib": [
+      "es2015",
+      "es2017"
+    ]
+  },
+  "compileOnSave": true,
+  "exclude": [
+    "**/*.spec.ts"
+  ],
+  "include": [
+    "src/*.ts",
+  ]
+}
