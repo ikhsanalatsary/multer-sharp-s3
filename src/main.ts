@@ -34,6 +34,8 @@ class S3Storage implements StorageEngine {
 
     if (!options.Key) {
       this._getKey = defaultKey
+    } else if (typeof options.Key === 'function') {
+      this._getKey = options.Key
     }
 
     this.opts = options
@@ -43,36 +45,18 @@ class S3Storage implements StorageEngine {
   public _handleFile(req, file, cb) {
     const { opts, sharpOpts } = this
     const { stream } = file
-    if (!opts.Key || typeof opts.Key === 'function') {
+    if (typeof this._getKey === 'function') {
       this._getKey(req, file, (fileErr, Key) => {
-        let params = {
-          Bucket: opts.Bucket,
-          ACL: opts.ACL,
-          CacheControl: opts.CacheControl,
-          ContentType: opts.ContentType,
-          Metadata: opts.Metadata,
-          StorageClass: opts.StorageClass,
-          ServerSideEncryption: opts.ServerSideEncryption,
-          SSEKMSKeyId: opts.SSEKMSKeyId,
-          Body: stream,
-          Key,
+        if (fileErr) {
+          cb(fileErr)
+          return
         }
+        let params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key }
 
         this._uploadProcess(params, stream, cb)
       })
     } else {
-      const params = {
-        Bucket: opts.Bucket,
-        ACL: opts.ACL,
-        CacheControl: opts.CacheControl,
-        ContentType: opts.ContentType,
-        Metadata: opts.Metadata,
-        StorageClass: opts.StorageClass,
-        ServerSideEncryption: opts.ServerSideEncryption,
-        SSEKMSKeyId: opts.SSEKMSKeyId,
-        Body: stream,
-        Key: opts.Key,
-      }
+      const params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key: opts.Key }
 
       this._uploadProcess(params, stream, cb)
     }
