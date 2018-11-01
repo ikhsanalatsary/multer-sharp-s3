@@ -117,7 +117,6 @@ class S3Storage implements StorageEngine {
       }
       const eachUpload = (size) => {
         const { Body, ContentType } = size
-        let currentSize = { [size.suffix]: 0 }
         let newParams = {
           ...params,
           Body,
