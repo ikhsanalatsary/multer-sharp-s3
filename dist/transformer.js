@@ -1,35 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var sharp = require("sharp");
+const sharp = require("sharp");
 exports.default = transformer;
-function transformer(options) {
-    var imageStream = sharp();
-    for (var _i = 0, _a = Object.entries(options); _i < _a.length; _i++) {
-        var _b = _a[_i], key = _b[0], value = _b[1];
+function transformer(options, size) {
+    let imageStream = sharp();
+    for (const [key, value] of Object.entries(options)) {
         if (value) {
-            imageStream = resolveImageStream(key, value, imageStream);
+            imageStream = resolveImageStream(key, value, size, imageStream);
         }
     }
     return imageStream;
 }
-var objectHasOwnProperty = function (source, prop) { return Object.prototype.hasOwnProperty.call(source, prop); };
-var hasProp = function (value) { return typeof value === 'object' && objectHasOwnProperty(value, 'type'); };
-var isObject = function (obj) { return typeof obj === 'object' && obj !== null; };
-var validateFormat = function (value) {
+const objectHasOwnProperty = (source, prop) => Object.prototype.hasOwnProperty.call(source, prop);
+const hasProp = (value) => typeof value === 'object' && objectHasOwnProperty(value, 'type');
+const isObject = (obj) => typeof obj === 'object' && obj !== null;
+const validateFormat = (value) => {
     if (hasProp(value)) {
         return value.type;
     }
     return value;
 };
-var validateValue = function (value) {
+const validateValue = (value) => {
     if (typeof value === 'boolean') {
         return null;
     }
     return value;
 };
-var resolveImageStream = function (key, value, imageStream) {
+const resolveImageStream = (key, value, size, imageStream) => {
     if (key === 'resize') {
-        imageStream = imageStream.resize(key.width, key.height, key.option);
+        imageStream = imageStream.resize(size.width, size.height, size.options);
     }
     else if (key === 'crop') {
         imageStream = imageStream[key](value);
@@ -38,7 +37,7 @@ var resolveImageStream = function (key, value, imageStream) {
         imageStream = imageStream.toFormat(validateFormat(value), value.options);
     }
     else {
-        var valid = validateValue(value);
+        const valid = validateValue(value);
         imageStream = imageStream[key](valid);
     }
     return imageStream;

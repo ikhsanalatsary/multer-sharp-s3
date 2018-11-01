@@ -2,6 +2,7 @@ import { forkJoin, from, Observable } from 'rxjs'
 import { map, mergeMap, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
+import { StorageEngine } from 'multer'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from "./get-filename";
@@ -14,8 +15,8 @@ interface S3Storage {
   sharpOpts: SharpOptions
   _getKey: (req, file, cb) => void
 }
-class S3Storage {
-  constructor(options) {
+class S3Storage implements StorageEngine {
+  constructor(options: S3StorageOptions) {
     options.Bucket = options.Bucket || process.env.AWS_BUCKET || null
     options.ACL = options.ACL || process.env.AWS_ACL || 'public-read'
     options.s3 = options.s3
@@ -54,12 +55,23 @@ class S3Storage {
           Key,
         }
 
-        this._upload(params, stream, cb)
+        this._uploadProcess(params, stream, cb)
       })
     } else {
-      const params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key: opts.Key }
+      const params = {
+        Bucket: opts.Bucket,
+        ACL: opts.ACL,
+        CacheControl: opts.CacheControl,
+        ContentType: opts.ContentType,
+        Metadata: opts.Metadata,
+        StorageClass: opts.StorageClass,
+        ServerSideEncryption: opts.ServerSideEncryption,
+        SSEKMSKeyId: opts.SSEKMSKeyId,
+        Body: stream,
+        Key: opts.Key,
+      }
 
-      this._upload(params, stream, cb)
+      this._uploadProcess(params, stream, cb)
     }
   }
 
@@ -67,10 +79,7 @@ class S3Storage {
     this.opts.s3.deleteObject({ Bucket: file.Bucket, Key: file.Key }, cb)
   }
 
-  private _bindSizeToPromise(
-    size: ExtendResult,
-    upload: ManagedUpload
-  ) {
+  private _bindSizeToPromise(size: ExtendResult, upload: ManagedUpload) {
     return new Promise(function(resolve, reject) {
       let currentSize = { [size.suffix]: 0 }
       upload.on('httpUploadProgress', function(ev) {
@@ -83,7 +92,7 @@ class S3Storage {
           ...result,
           currentSize: size.currentSize || currentSize[size.suffix],
           suffix: size.suffix,
-          ContentType: size.ContentType
+          ContentType: size.ContentType,
         })
       }, reject)
     })
@@ -92,12 +101,16 @@ class S3Storage {
   private _bindMetaToPromise(size, metadata) {
     return new Promise(function(resolve, reject) {
       metadata.then(function(result) {
-        resolve({ ...size, ContentType: result.format, currentSize: result.size })
+        resolve({
+          ...size,
+          ContentType: result.format,
+          currentSize: result.size,
+        })
       }, reject)
     })
   }
 
-  private _upload(params, stream, cb) {
+  private _uploadProcess(params, stream, cb) {
     const { opts, sharpOpts } = this
     if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
       const sizes = from(opts.resize)
@@ -119,10 +132,13 @@ class S3Storage {
       const eachUpload = (size) => {
         const { Body, ContentType } = size
         let currentSize = { [size.suffix]: 0 }
-        params.Key = `${params.Key}-${size.suffix}`
-        params.Body = Body
-        params.ContentType = ContentType
-        const upload = opts.s3.upload(params)
+        let newParams = {
+          ...params,
+          Body,
+          ContentType,
+          Key: `${params.Key}-${size.suffix}`,
+        }
+        const upload = opts.s3.upload(newParams)
         const promise = this._bindSizeToPromise(size, upload)
         return from(promise)
       }
@@ -130,7 +146,12 @@ class S3Storage {
       const getContentType = mergeMap(getMeta)
       const uploadToAws = mergeMap(eachUpload)
       sizes
-        .pipe( resizeWithSharp, getContentType, uploadToAws, toArray() )
+        .pipe(
+          resizeWithSharp,
+          getContentType,
+          uploadToAws,
+          toArray()
+        )
         .subscribe((res) => {
           const mapArrayToObject = res.reduce((acc, curr: MapResult) => {
             acc[curr.suffix] = {}
@@ -155,29 +176,31 @@ class S3Storage {
       const resizerStream = transformer(sharpOpts, sharpOpts.resize)
       params.Body = stream.pipe(resizerStream)
       const meta = { stream: params.Body }
-      const metadata = meta.stream.metadata()
-      const meta$: Observable<{ format: string }> = from(metadata)
-      const upload = opts.s3.upload(params)
-      upload.on('httpUploadProgress', function(ev) {
-        if (ev.total) {
-          currentSize = ev.total
-        }
-      })
-      const upload$ = from(upload.promise())
-      forkJoin(meta$, upload$).subscribe((results) => {
-        cb(null, {
-          Size: currentSize,
-          Bucket: opts.Bucket,
-          ACL: opts.ACL,
-          ContentType: opts.ContentType || results[0].format,
-          ContentDisposition: opts.ContentDisposition,
-          StorageClass: opts.StorageClass,
-          ServerSideEncryption: opts.ServerSideEncryption,
-          Metadata: opts.Metadata,
-          Location: results[1].Location,
-          ETag: results[1].ETag,
-          Key: results[1].Key,
+      const meta$: Observable<{ format: string }> = from(meta.stream.metadata())
+      meta$.subscribe((metadata) => {
+        params.ContentType = opts.ContentType || metadata.format
+        const upload = opts.s3.upload(params)
+        upload.on('httpUploadProgress', function(ev) {
+          if (ev.total) {
+            currentSize = ev.total
+          }
         })
+        const upload$ = from(upload.promise())
+        upload$.subscribe((result) => {
+          cb(null, {
+            Size: currentSize,
+            Bucket: opts.Bucket,
+            ACL: opts.ACL,
+            ContentType: opts.ContentType || metadata.format,
+            ContentDisposition: opts.ContentDisposition,
+            StorageClass: opts.StorageClass,
+            ServerSideEncryption: opts.ServerSideEncryption,
+            Metadata: opts.Metadata,
+            Location: result.Location,
+            ETag: result.ETag,
+            Key: result.Key,
+          })
+        }, cb)
       }, cb)
     }
   }

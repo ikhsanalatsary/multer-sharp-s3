@@ -78,10 +78,11 @@ export interface SharpOptions {
   gzip?: boolean
 }
 
-export interface CloudStorageOptions extends Partial<S3.Types.PutObjectRequest> {
-  Key?: string;
-  multiple?: boolean;
-  s3: S3;
+export interface CloudStorageOptions
+  extends Partial<S3.Types.PutObjectRequest> {
+  Key?: string
+  multiple?: boolean
+  s3: S3
 }
 
 export type S3StorageOptions = CloudStorageOptions & SharpOptions
