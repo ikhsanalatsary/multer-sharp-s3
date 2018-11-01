@@ -7,7 +7,6 @@ import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from "./get-filename";
 import { S3StorageOptions, SharpOptions, ExtendSize } from './types'
-import { Result } from 'range-parser';
 
 type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
 type MapResult = ManagedUpload.SendData & ExtendResult
