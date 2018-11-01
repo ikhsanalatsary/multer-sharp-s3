@@ -1,6 +1,6 @@
-import { SharpOptions } from './types'
+import { S3StorageOptions, SharpOptions } from './types'
 
-function getSharpOptions(options: SharpOptions) {
+function getSharpOptions(options: S3StorageOptions): SharpOptions {
   return {
     resize: options.resize,
     background: options.background,
