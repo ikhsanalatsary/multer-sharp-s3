@@ -1,5 +1,5 @@
-import { from } from 'rxjs'
-import { map, mergeMap, reduce, toArray } from 'rxjs/operators'
+import { forkJoin, from, Observable } from 'rxjs'
+import { map, mergeMap, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
 import getSharpOptions from './get-sharp-options'
@@ -7,7 +7,7 @@ import transformer from './transformer'
 import defaultKey from "./get-filename";
 import { S3StorageOptions, SharpOptions, ExtendSize } from './types'
 
-type ExtendResult = ExtendSize & { currentSize: number; ContentType: 'string' }
+type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
 type MapResult = ManagedUpload.SendData & ExtendResult
 interface S3Storage {
   opts: S3StorageOptions
@@ -54,171 +54,12 @@ class S3Storage {
           Key,
         }
 
-        if (
-          opts.multiple &&
-          Array.isArray(opts.resize) &&
-          opts.resize.length > 0
-        ) {
-          const sizes = from(opts.resize)
-          const resizeImage = function(size) {
-            const resizerStream = transformer(sharpOpts, size)
-            if (size.suffix === 'original') {
-              size.Body = stream.pipe(sharp())
-            } else {
-              size.Body = stream.pipe(resizerStream)
-            }
-            return size
-          }
-          const getMeta = (size) => {
-            const meta = { stream: size.Body }
-            const getMetaFromSharp = meta.stream.metadata()
-            const promise = this._bindMetaToPromise(size, getMetaFromSharp)
-            return from(promise)
-          }
-          const eachUpload = (size) => {
-            const { Body, ContentType } = size
-            params.Key = `${Key}-${size.suffix}`
-            params.Body = Body
-            params.ContentType = ContentType
-            const upload = opts.s3.upload(params)
-            const promise = this._bindSizeToPromise(size, upload.promise())
-            return from(promise)
-          }
-          const resizeWithSharp = map(resizeImage)
-          const getContentType = mergeMap(getMeta)
-          const uploadToAws = mergeMap(eachUpload)
-           sizes
-             .pipe( resizeWithSharp, getContentType, uploadToAws, toArray() )
-             .subscribe((res) => {
-               const mapArrayToObject = res.reduce(
-                 (acc, curr: MapResult) => {
-                   acc[curr.suffix] = {}
-                   acc[curr.suffix].Location = curr.Location
-                   acc[curr.suffix].Key = curr.Key
-                   acc[curr.suffix].Size = curr.currentSize
-                   acc[curr.suffix].Bucket = curr.Bucket
-                   acc[curr.suffix].ACL = opts.ACL
-                   acc[curr.suffix].ContentType =
-                     opts.ContentType || curr.ContentType
-                   acc[curr.suffix].ContentDisposition =
-                     opts.ContentDisposition
-                   acc[curr.suffix].StorageClass = opts.StorageClass
-                   acc[curr.suffix].ServerSideEncryption =
-                     opts.ServerSideEncryption
-                   acc[curr.suffix].Metadata = opts.Metadata
-                   acc[curr.suffix].ETag = curr.ETag
-                   return acc
-                 },
-                 {}
-               )
-
-               cb(null, mapArrayToObject)
-             }, cb)
-        } else {
-          let currentSize = 0
-          const resizerStream = transformer(sharpOpts, sharpOpts.resize)
-          params.Body = stream.pipe(resizerStream)
-          const upload = opts.s3.upload(params)
-          upload.on('httpUploadProgress', function(ev) {
-            if (ev.total) { currentSize = ev.total }
-          })
-          upload.promise().then((result) => {
-            cb(null, {
-              Size: currentSize,
-              Bucket: opts.Bucket,
-              ACL: opts.ACL,
-              ContentType: opts.ContentType,
-              ContentDisposition: opts.ContentDisposition,
-              StorageClass: opts.StorageClass,
-              ServerSideEncryption: opts.ServerSideEncryption,
-              Metadata: opts.Metadata,
-              Location: result.Location,
-              ETag: result.ETag,
-              Key
-            })
-          }, cb)
-        }
+        this._upload(params, stream, cb)
       })
     } else {
-      let params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key: opts.Key }
+      const params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key: opts.Key }
 
-      if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
-        console.log('GOOOOO')
-        const sizes = from(opts.resize)
-        const resizeImage = function(size) {
-          const resizerStream = transformer(sharpOpts, size)
-          if (size.suffix === 'original') {
-            size.Body = stream.pipe(sharp())
-          } else {
-            size.Body = stream.pipe(resizerStream)
-          }
-          return size
-        }
-        const getMeta = (size) => {
-          const meta = { stream: size.Body }
-          const getMetaFromSharp = meta.stream.metadata()
-          const promise = this._bindMetaToPromise(size, getMetaFromSharp)
-          return from(promise)
-        }
-        const eachUpload = (size) => {
-          const { Body, ContentType } = size
-          // console.log(size);
-
-          params.Key = `${opts.Key}-${size.suffix}`
-          params.Body = Body
-          params.ContentType = ContentType
-          const upload = opts.s3.upload(params)
-          const promise = this._bindSizeToPromise(size, upload.promise())
-          return from(promise)
-        }
-        const resizeWithSharp = map(resizeImage)
-        const getContentType = mergeMap(getMeta)
-        const uploadToAws = mergeMap(eachUpload)
-        sizes
-          .pipe( resizeWithSharp, getContentType, uploadToAws, toArray() )
-          .subscribe((res) => {
-              const mapArrayToObject = res.reduce((acc, curr: MapResult) => {
-                acc[curr.suffix] = {}
-                acc[curr.suffix].Location = curr.Location
-                acc[curr.suffix].Key = curr.Key
-                acc[curr.suffix].Size = curr.currentSize
-                acc[curr.suffix].Bucket = curr.Bucket
-                acc[curr.suffix].ACL = opts.ACL
-                acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
-                acc[curr.suffix].ContentDisposition = opts.ContentDisposition
-                acc[curr.suffix].StorageClass = opts.StorageClass
-                acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
-                acc[curr.suffix].Metadata = opts.Metadata
-                acc[curr.suffix].ETag = curr.ETag
-                return acc
-              }, {})
-
-              cb(null, mapArrayToObject)
-            }, cb)
-      } else {
-        let currentSize = 0
-        const resizerStream = transformer(sharpOpts, sharpOpts.resize)
-        params.Body = stream.pipe(resizerStream)
-        const upload = opts.s3.upload(params)
-        upload.on('httpUploadProgress', function(ev) {
-          if (ev.total) { currentSize = ev.total }
-        })
-        upload.promise().then((result) => {
-          cb(null, {
-            Size: currentSize,
-            Bucket: opts.Bucket,
-            ACL: opts.ACL,
-            ContentType: opts.ContentType,
-            ContentDisposition: opts.ContentDisposition,
-            StorageClass: opts.StorageClass,
-            ServerSideEncryption: opts.ServerSideEncryption,
-            Metadata: opts.Metadata,
-            Location: result.Location,
-            ETag: result.ETag,
-            Key: opts.Key,
-          })
-        }, cb)
-      }
+      this._upload(params, stream, cb)
     }
   }
 
@@ -228,15 +69,21 @@ class S3Storage {
 
   private _bindSizeToPromise(
     size: ExtendResult,
-    upload: Promise<ManagedUpload.SendData>
+    upload: ManagedUpload
   ) {
     return new Promise(function(resolve, reject) {
-      upload.then(function(result) {
+      let currentSize = { [size.suffix]: 0 }
+      upload.on('httpUploadProgress', function(ev) {
+        if (ev.total) {
+          currentSize[size.suffix] = ev.total
+        }
+      })
+      upload.promise().then(function(result) {
         resolve({
           ...result,
+          currentSize: size.currentSize || currentSize[size.suffix],
           suffix: size.suffix,
-          ContentType: size.ContentType,
-          currentSize: size.currentSize,
+          ContentType: size.ContentType
         })
       }, reject)
     })
@@ -248,6 +95,91 @@ class S3Storage {
         resolve({ ...size, ContentType: result.format, currentSize: result.size })
       }, reject)
     })
+  }
+
+  private _upload(params, stream, cb) {
+    const { opts, sharpOpts } = this
+    if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
+      const sizes = from(opts.resize)
+      const resizeImage = function(size) {
+        const resizerStream = transformer(sharpOpts, size)
+        if (size.suffix === 'original') {
+          size.Body = stream.pipe(sharp())
+        } else {
+          size.Body = stream.pipe(resizerStream)
+        }
+        return size
+      }
+      const getMeta = (size) => {
+        const meta = { stream: size.Body }
+        const getMetaFromSharp = meta.stream.metadata()
+        const promise = this._bindMetaToPromise(size, getMetaFromSharp)
+        return from(promise)
+      }
+      const eachUpload = (size) => {
+        const { Body, ContentType } = size
+        let currentSize = { [size.suffix]: 0 }
+        params.Key = `${params.Key}-${size.suffix}`
+        params.Body = Body
+        params.ContentType = ContentType
+        const upload = opts.s3.upload(params)
+        const promise = this._bindSizeToPromise(size, upload)
+        return from(promise)
+      }
+      const resizeWithSharp = map(resizeImage)
+      const getContentType = mergeMap(getMeta)
+      const uploadToAws = mergeMap(eachUpload)
+      sizes
+        .pipe( resizeWithSharp, getContentType, uploadToAws, toArray() )
+        .subscribe((res) => {
+          const mapArrayToObject = res.reduce((acc, curr: MapResult) => {
+            acc[curr.suffix] = {}
+            acc[curr.suffix].Location = curr.Location
+            acc[curr.suffix].Key = curr.Key
+            acc[curr.suffix].Size = curr.currentSize
+            acc[curr.suffix].Bucket = curr.Bucket
+            acc[curr.suffix].ACL = opts.ACL
+            acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
+            acc[curr.suffix].ContentDisposition = opts.ContentDisposition
+            acc[curr.suffix].StorageClass = opts.StorageClass
+            acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
+            acc[curr.suffix].Metadata = opts.Metadata
+            acc[curr.suffix].ETag = curr.ETag
+            return acc
+          }, {})
+
+          cb(null, mapArrayToObject)
+        }, cb)
+    } else {
+      let currentSize = 0
+      const resizerStream = transformer(sharpOpts, sharpOpts.resize)
+      params.Body = stream.pipe(resizerStream)
+      const meta = { stream: params.Body }
+      const metadata = meta.stream.metadata()
+      const meta$: Observable<{ format: string }> = from(metadata)
+      const upload = opts.s3.upload(params)
+      upload.on('httpUploadProgress', function(ev) {
+        if (ev.total) {
+          currentSize = ev.total
+        }
+      })
+      const upload$ = from(upload.promise())
+      forkJoin(meta$, upload$).subscribe((results) => {
+        cb(null, {
+          Size: currentSize,
+          Bucket: opts.Bucket,
+          ACL: opts.ACL,
+          ContentType: opts.ContentType || results[0].format,
+          ContentDisposition: opts.ContentDisposition,
+          StorageClass: opts.StorageClass,
+          ServerSideEncryption: opts.ServerSideEncryption,
+          Metadata: opts.Metadata,
+          Location: results[1].Location,
+          ETag: results[1].ETag,
+          Key: results[1].Key,
+        })
+      }, cb)
+    }
   }
 }
 

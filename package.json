@@ -40,7 +40,8 @@
   },
   "dependencies": {
     "rxjs": "^6.3.3",
-    "sharp": "0.20.8"
+    "sharp": "0.20.8",
+    "yarn.lock": "^0.0.1-security"
   },
   "jest": {
     "moduleFileExtensions": [
