@@ -8,29 +8,25 @@ const transformer_1 = require("./transformer");
 const get_filename_1 = require("./get-filename");
 class S3Storage {
     constructor(options) {
-        options.Bucket = options.Bucket || process.env.AWS_BUCKET || null;
-        options.ACL = options.ACL || process.env.AWS_ACL || 'public-read';
-        options.s3 = options.s3;
-        if (!options.Bucket) {
-            throw new Error('You have to specify bucket for AWS S3 to work.');
-        }
         if (!options.s3) {
             throw new Error('You have to specify bucket for AWS S3 to work.');
         }
-        if (!options.Key) {
-            this._getKey = get_filename_1.default;
-        }
-        else if (typeof options.Key === 'function') {
-            this._getKey = options.Key;
-        }
-        this.opts = options;
+        this.opts = Object.assign({}, S3Storage.defaultOptions, options);
         this.sharpOpts = get_sharp_options_1.default(options);
+        if (!this.opts.Bucket) {
+            throw new Error('You have to specify bucket for AWS S3 to work.');
+        }
+        if (typeof this.opts.Key !== 'string') {
+            if (typeof this.opts.Key !== 'function') {
+                throw new TypeError(`Key must be a "string" or "function" or "undefined" but got ${typeof this.opts.Key}`);
+            }
+        }
     }
     _handleFile(req, file, cb) {
         const { opts, sharpOpts } = this;
         const { stream } = file;
-        if (typeof this._getKey === 'function') {
-            this._getKey(req, file, (fileErr, Key) => {
+        if (typeof opts.Key === 'function') {
+            opts.Key(req, file, (fileErr, Key) => {
                 if (fileErr) {
                     cb(fileErr);
                     return;
@@ -163,6 +159,12 @@ class S3Storage {
         return acc;
     }
 }
+S3Storage.defaultOptions = {
+    ACL: process.env.AWS_ACL || 'public-read',
+    Bucket: process.env.AWS_BUCKET || null,
+    Key: get_filename_1.default,
+    multiple: false,
+};
 function s3Storage(options) {
     return new S3Storage(options);
 }
