@@ -12,6 +12,7 @@ import {
   Kernel,
 } from 'sharp'
 import { S3 } from 'aws-sdk'
+import * as express from 'express'
 
 export interface Size {
   width?: number
@@ -36,13 +37,13 @@ export interface Format {
 }
 
 export interface ExtendSize {
-  suffix?: string
+  suffix: string
 }
 
 type SharpOption<T = string> = void | T
 
 export type ResizeOption =
-  | SharpOption<Size & ExtendSize>
+  | SharpOption<Size>
   | Array<SharpOption<Size & ExtendSize>>
 
 export interface SharpOptions {
@@ -75,12 +76,13 @@ export interface SharpOptions {
   toColourspace?: SharpOption
   toColorspace?: SharpOption
   toFormat?: SharpOption<string | Format>
-  gzip?: boolean
 }
+
+export type Callback = (req: express.Request, file: Express.Multer.File, callback: (error?: any, info?: string) => void) => void;
 
 export interface CloudStorageOptions
   extends Partial<S3.Types.PutObjectRequest> {
-  Key?: string
+  Key?: any
   multiple?: boolean
   s3: S3
 }
