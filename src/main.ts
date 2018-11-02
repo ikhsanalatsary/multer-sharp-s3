@@ -10,26 +10,26 @@ import transformer from './transformer'
 import defaultKey from './get-filename'
 import { Callback, S3StorageOptions, SharpOptions, ExtendSize } from './types'
 
-type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
-type MapResult = ManagedUpload.SendData & ExtendResult
-type EndResult = ManagedUpload.SendData & sharp.Metadata
-type ERequest = express.Request
-type EStream = {
+export type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
+export type MapResult = ManagedUpload.SendData & ExtendResult
+export type EndResult = ManagedUpload.SendData & sharp.Metadata
+export type ERequest = express.Request
+export type EStream = {
    stream: NodeJS.ReadableStream & sharp.SharpInstance
 }
-type EFile = Express.Multer.File & EStream & Partial<S3.Types.PutObjectRequest>
-type Info = Partial<
+export type EFile = Express.Multer.File & EStream & Partial<S3.Types.PutObjectRequest>
+export type Info = Partial<
   Express.Multer.File &
     ManagedUpload.SendData &
     Partial<S3.Types.PutObjectRequest> & { Size: number | void }
 >
-type ECb = (error?: any, info?: Info) => void
-interface S3Storage {
+export type ECb = (error?: any, info?: Info) => void
+export interface S3Storage {
   opts: S3StorageOptions
   sharpOpts: SharpOptions
   _getKey: Callback
 }
-class S3Storage implements StorageEngine {
+export class S3Storage implements StorageEngine {
   protected static defaultOptions = {
     ACL: process.env.AWS_ACL || 'public-read',
     Bucket: process.env.AWS_BUCKET || null,

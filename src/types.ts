@@ -40,7 +40,7 @@ export interface ExtendSize {
   suffix: string
 }
 
-type SharpOption<T = string> = void | T
+export type SharpOption<T = string> = void | T
 
 export type ResizeOption =
   | SharpOption<Size>
