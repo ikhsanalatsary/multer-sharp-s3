@@ -6,7 +6,7 @@ import { StorageEngine } from 'multer'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from "./get-filename";
-import { S3StorageOptions, SharpOptions, ExtendSize } from './types'
+import { Callback, S3StorageOptions, SharpOptions, ExtendSize } from './types'
 
 type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
 type MapResult = ManagedUpload.SendData & ExtendResult
@@ -15,37 +15,40 @@ type EndResult = ManagedUpload.SendData & Metadata
 interface S3Storage {
   opts: S3StorageOptions
   sharpOpts: SharpOptions
-  _getKey: (req, file, cb) => void
+  _getKey: Callback
 }
 class S3Storage implements StorageEngine {
+  protected static defaultOptions = {
+    ACL: process.env.AWS_ACL || 'public-read',
+    Bucket: process.env.AWS_BUCKET || null,
+    Key: defaultKey,
+    multiple: false,
+  }
+
   constructor(options: S3StorageOptions) {
-    options.Bucket = options.Bucket || process.env.AWS_BUCKET || null
-    options.ACL = options.ACL || process.env.AWS_ACL || 'public-read'
-    options.s3 = options.s3
-
-    if (!options.Bucket) {
-      throw new Error('You have to specify bucket for AWS S3 to work.')
-    }
-
     if (!options.s3) {
       throw new Error('You have to specify bucket for AWS S3 to work.')
     }
 
-    if (!options.Key) {
-      this._getKey = defaultKey
-    } else if (typeof options.Key === 'function') {
-      this._getKey = options.Key
+    this.opts = { ...S3Storage.defaultOptions, ...options }
+    this.sharpOpts = getSharpOptions(options)
+
+    if (!this.opts.Bucket) {
+      throw new Error('You have to specify bucket for AWS S3 to work.')
     }
 
-    this.opts = options
-    this.sharpOpts = getSharpOptions(options)
+    if (typeof this.opts.Key !== 'string') {
+      if (typeof this.opts.Key !== 'function') {
+        throw new TypeError(`Key must be a "string" or "function" or "undefined" but got ${typeof this.opts.Key}`)
+      }
+    }
   }
 
   public _handleFile(req, file, cb) {
     const { opts, sharpOpts } = this
     const { stream } = file
-    if (typeof this._getKey === 'function') {
-      this._getKey(req, file, (fileErr, Key) => {
+    if (typeof opts.Key === 'function') {
+      opts.Key(req, file, (fileErr, Key) => {
         if (fileErr) {
           cb(fileErr)
           return
