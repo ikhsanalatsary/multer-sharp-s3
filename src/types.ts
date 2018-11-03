@@ -13,7 +13,6 @@ import {
   SharpInstance,
 } from 'sharp'
 import { S3 } from 'aws-sdk'
-import * as express from 'express'
 
 export interface Size {
   width?: number
@@ -79,8 +78,6 @@ export interface SharpOptions {
   toColorspace?: SharpOption
   toFormat?: SharpOption<string | Format>
 }
-
-export type Callback = (req: express.Request, file: Express.Multer.File, callback: (error?: any, info?: string) => void) => void;
 
 export interface CloudStorageOptions
   extends Partial<S3.Types.PutObjectRequest> {

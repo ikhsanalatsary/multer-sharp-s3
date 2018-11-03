@@ -4,14 +4,13 @@ import * as sharp from 'sharp'
 import { lookup } from 'mime-types'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
 import { StorageEngine } from 'multer'
-import * as express from 'express'
+import { Request } from 'express'
 import { S3 } from 'aws-sdk'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from './get-filename'
 import { S3StorageOptions, SharpOptions } from './types'
 
-export type ERequest = express.Request
 export type EStream = {
   stream: NodeJS.ReadableStream & sharp.SharpInstance
 }
@@ -23,7 +22,6 @@ export type Info = Partial<
     ManagedUpload.SendData &
     Partial<S3.Types.PutObjectRequest> & { Size: number }
 >
-export type ECb = (error?: any, info?: Info) => void
 export interface S3Storage {
   opts: S3StorageOptions
   sharpOpts: SharpOptions
@@ -58,7 +56,7 @@ export class S3Storage implements StorageEngine {
     }
   }
 
-  public _handleFile(req: ERequest, file: EFile, cb: ECb) {
+  public _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void) {
     const { opts, sharpOpts } = this
     const { mimetype, stream } = file
     if (typeof opts.Key === 'function') {
@@ -108,14 +106,14 @@ export class S3Storage implements StorageEngine {
     }
   }
 
-  public _removeFile(req: ERequest, file: EFile, cb: (error: Error) => void) {
+  public _removeFile(req: Request, file: EFile, cb: (error: Error) => void) {
     this.opts.s3.deleteObject({ Bucket: file.Bucket, Key: file.Key }, cb)
   }
 
   private _uploadProcess(
     params: S3.Types.PutObjectRequest,
     file: EFile,
-    cb: ECb
+    cb: (error?: any, info?: Info) => void
   ) {
     const { opts, sharpOpts } = this
     const { stream } = file
@@ -249,7 +247,7 @@ export class S3Storage implements StorageEngine {
   private _uploadNonImage(
     params: S3.Types.PutObjectRequest,
     file: EFile,
-    cb: ECb
+    cb: (error?: any, info?: Info) => void
   ) {
     const { opts } = this
     const { mimetype } = file

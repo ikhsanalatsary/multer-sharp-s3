@@ -13,7 +13,6 @@ function transformer(options, size) {
 }
 const objectHasOwnProperty = (source, prop) => Object.prototype.hasOwnProperty.call(source, prop);
 const hasProp = (value) => typeof value === 'object' && objectHasOwnProperty(value, 'type');
-const isObject = (obj) => typeof obj === 'object' && obj !== null;
 const validateFormat = (value) => {
     if (hasProp(value)) {
         return value.type;

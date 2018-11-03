@@ -1,6 +1,6 @@
-import { ResizeOptions, RGBA, Region, ExtendOptions, ThresholdOptions, AvailableFormatInfo, OutputOptions, JpegOptions, PngOptions, Metadata, Kernel } from 'sharp';
+/// <reference types="node" />
+import { ResizeOptions, RGBA, Region, ExtendOptions, ThresholdOptions, AvailableFormatInfo, OutputOptions, JpegOptions, PngOptions, Metadata, Kernel, SharpInstance } from 'sharp';
 import { S3 } from 'aws-sdk';
-import * as express from 'express';
 export interface Size {
     width?: number;
     height?: number;
@@ -21,8 +21,9 @@ export interface Format {
 }
 export interface ExtendSize {
     suffix: string;
+    Body?: NodeJS.ReadableStream & SharpInstance;
 }
-export declare type SharpOption<T = string> = void | T;
+export declare type SharpOption<T = string> = T;
 export declare type ResizeOption = SharpOption<Size> | Array<SharpOption<Size & ExtendSize>>;
 export interface SharpOptions {
     resize?: ResizeOption;
@@ -55,7 +56,6 @@ export interface SharpOptions {
     toColorspace?: SharpOption;
     toFormat?: SharpOption<string | Format>;
 }
-export declare type Callback = (req: express.Request, file: Express.Multer.File, callback: (error?: any, info?: string) => void) => void;
 export interface CloudStorageOptions extends Partial<S3.Types.PutObjectRequest> {
     Key?: any;
     multiple?: boolean;
