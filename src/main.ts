@@ -3,21 +3,38 @@ import { map, mergeMap, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
 import { StorageEngine } from 'multer'
+import * as express from 'express'
+import { S3 } from 'aws-sdk'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
-import defaultKey from "./get-filename";
+import defaultKey from './get-filename'
 import { Callback, S3StorageOptions, SharpOptions, ExtendSize } from './types'
 
-type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
-type MapResult = ManagedUpload.SendData & ExtendResult
-type Metadata = { format: string }
-type EndResult = ManagedUpload.SendData & Metadata
-interface S3Storage {
+export type ExtendResult = ExtendSize & {
+  currentSize: number
+  ContentType: 'string'
+}
+export type MapResult = ManagedUpload.SendData & ExtendResult
+export type EndResult = ManagedUpload.SendData & sharp.Metadata
+export type ERequest = express.Request
+export type EStream = {
+  stream: NodeJS.ReadableStream & sharp.SharpInstance
+}
+export type EFile = Express.Multer.File &
+  EStream &
+  Partial<S3.Types.PutObjectRequest>
+export type Info = Partial<
+  Express.Multer.File &
+    ManagedUpload.SendData &
+    Partial<S3.Types.PutObjectRequest> & { Size: number | void }
+>
+export type ECb = (error?: any, info?: Info) => void
+export interface S3Storage {
   opts: S3StorageOptions
   sharpOpts: SharpOptions
   _getKey: Callback
 }
-class S3Storage implements StorageEngine {
+export class S3Storage implements StorageEngine {
   protected static defaultOptions = {
     ACL: process.env.AWS_ACL || 'public-read',
     Bucket: process.env.AWS_BUCKET || null,
@@ -39,32 +56,65 @@ class S3Storage implements StorageEngine {
 
     if (typeof this.opts.Key !== 'string') {
       if (typeof this.opts.Key !== 'function') {
-        throw new TypeError(`Key must be a "string" or "function" or "undefined" but got ${typeof this.opts.Key}`)
+        throw new TypeError(
+          `Key must be a "string" or "function" or "undefined" but got ${typeof this
+            .opts.Key}`
+        )
       }
     }
   }
 
-  public _handleFile(req, file, cb) {
+  public _handleFile(req: ERequest, file: EFile, cb: ECb) {
     const { opts, sharpOpts } = this
-    const { stream } = file
+    const { mimetype, stream } = file
     if (typeof opts.Key === 'function') {
       opts.Key(req, file, (fileErr, Key) => {
         if (fileErr) {
           cb(fileErr)
           return
         }
-        let params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key }
+        let params = {
+          Bucket: opts.Bucket,
+          ACL: opts.ACL,
+          CacheControl: opts.CacheControl,
+          ContentType: opts.ContentType,
+          Metadata: opts.Metadata,
+          StorageClass: opts.StorageClass,
+          ServerSideEncryption: opts.ServerSideEncryption,
+          SSEKMSKeyId: opts.SSEKMSKeyId,
+          Body: stream,
+          Key,
+        }
 
-        this._uploadProcess(params, stream, cb)
+        if (mimetype.includes('image')) {
+          this._uploadProcess(params, file, cb)
+        } else {
+          this._uploadNonImage(params, file, cb)
+        }
       })
     } else {
-      const params = { Bucket: opts.Bucket, ACL: opts.ACL, CacheControl: opts.CacheControl, ContentType: opts.ContentType, Metadata: opts.Metadata, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, SSEKMSKeyId: opts.SSEKMSKeyId, Body: stream, Key: opts.Key }
+      const params = {
+        Bucket: opts.Bucket,
+        ACL: opts.ACL,
+        CacheControl: opts.CacheControl,
+        ContentType: opts.ContentType,
+        Metadata: opts.Metadata,
+        StorageClass: opts.StorageClass,
+        ServerSideEncryption: opts.ServerSideEncryption,
+        SSEKMSKeyId: opts.SSEKMSKeyId,
+        Body: stream,
+        Key: opts.Key,
+      }
 
-      this._uploadProcess(params, stream, cb)
+      if (mimetype.includes('image')) {
+        this._uploadProcess(params, file, cb)
+      } else {
+        this._uploadNonImage(params, file, cb)
+      }
     }
   }
 
-  public _removeFile(req, file, cb) {
+  public _removeFile(req: ERequest, file: EFile, cb: (error: Error) => void) {
     this.opts.s3.deleteObject({ Bucket: file.Bucket, Key: file.Key }, cb)
   }
 
@@ -99,8 +149,13 @@ class S3Storage implements StorageEngine {
     })
   }
 
-  private _uploadProcess(params, stream, cb) {
+  private _uploadProcess(
+    params: S3.Types.PutObjectRequest,
+    file: EFile,
+    cb: ECb
+  ) {
     const { opts, sharpOpts } = this
+    const { stream } = file
     if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
       const sizes = from(opts.resize)
       const resizeImage = function(size) {
@@ -148,27 +203,32 @@ class S3Storage implements StorageEngine {
     } else {
       let currentSize = 0
       const resizerStream = transformer(sharpOpts, sharpOpts.resize)
-      params.Body = stream.pipe(resizerStream)
-      const meta = { stream: params.Body }
-      const meta$: Observable<Metadata> = from(meta.stream.metadata())
+      let newParams = { ...params, Body: stream.pipe(resizerStream) }
+      const meta = { stream: newParams.Body }
+      const meta$ = from(meta.stream.metadata())
       meta$
-        .pipe( map((metadata) => {
+        .pipe(
+          map((metadata) => {
             params.ContentType = opts.ContentType || metadata.format
             return metadata
-          }), mergeMap((metadata) => {
-            const upload = opts.s3.upload(params)
+          }),
+          mergeMap((metadata) => {
+            const upload = opts.s3.upload(newParams)
             upload.on('httpUploadProgress', function(ev) {
               if (ev.total) {
                 currentSize = ev.total
               }
             })
-            const upload$ = from(new Promise((resolve, reject) => {
+            const upload$ = from(
+              new Promise((resolve, reject) => {
                 upload.promise().then((res) => {
                   resolve({ ...res, format: metadata.format })
                 }, reject)
-              }))
+              })
+            )
             return upload$
-          }) )
+          })
+        )
         .subscribe((result: EndResult) => {
           cb(null, {
             Size: currentSize,
@@ -202,6 +262,38 @@ class S3Storage implements StorageEngine {
     acc[curr.suffix].Metadata = opts.Metadata
     acc[curr.suffix].ETag = curr.ETag
     return acc
+  }
+
+  private _uploadNonImage(
+    params: S3.Types.PutObjectRequest,
+    file: EFile,
+    cb: ECb
+  ) {
+    const { opts } = this
+    const { mimetype } = file
+    let currentSize = 0
+    params.ContentType = mimetype
+    const upload = opts.s3.upload(params)
+    upload.on('httpUploadProgress', function(ev) {
+      if (ev.total) {
+        currentSize = ev.total
+      }
+    })
+    upload.promise().then((result) => {
+      cb(null, {
+        Size: currentSize,
+        Bucket: opts.Bucket,
+        ACL: opts.ACL,
+        ContentType: opts.ContentType || mimetype,
+        ContentDisposition: opts.ContentDisposition,
+        StorageClass: opts.StorageClass,
+        ServerSideEncryption: opts.ServerSideEncryption,
+        Metadata: opts.Metadata,
+        Location: result.Location,
+        ETag: result.ETag,
+        Key: result.Key,
+      })
+    }, cb)
   }
 }
 
