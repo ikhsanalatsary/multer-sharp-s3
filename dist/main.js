@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const sharp = require("sharp");
+const mime_types_1 = require("mime-types");
 const get_sharp_options_1 = require("./get-sharp-options");
 const transformer_1 = require("./transformer");
 const get_filename_1 = require("./get-filename");
@@ -76,32 +77,13 @@ class S3Storage {
     _removeFile(req, file, cb) {
         this.opts.s3.deleteObject({ Bucket: file.Bucket, Key: file.Key }, cb);
     }
-    _bindSizeToPromise(size, upload) {
-        return new Promise(function (resolve, reject) {
-            let currentSize = { [size.suffix]: 0 };
-            upload.on('httpUploadProgress', function (ev) {
-                if (ev.total) {
-                    currentSize[size.suffix] = ev.total;
-                }
-            });
-            upload.promise().then(function (result) {
-                resolve(Object.assign({}, result, { currentSize: size.currentSize || currentSize[size.suffix], suffix: size.suffix, ContentType: size.ContentType }));
-            }, reject);
-        });
-    }
-    _bindMetaToPromise(size, metadata) {
-        return new Promise(function (resolve, reject) {
-            metadata.then(function (result) {
-                resolve(Object.assign({}, size, { ContentType: result.format, currentSize: result.size }));
-            }, reject);
-        });
-    }
     _uploadProcess(params, file, cb) {
         const { opts, sharpOpts } = this;
         const { stream } = file;
         if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
             const sizes = rxjs_1.from(opts.resize);
-            const resizeImage = function (size) {
+            sizes
+                .pipe(operators_1.map((size) => {
                 const resizerStream = transformer_1.default(sharpOpts, size);
                 if (size.suffix === 'original') {
                     size.Body = stream.pipe(sharp());
@@ -110,28 +92,46 @@ class S3Storage {
                     size.Body = stream.pipe(resizerStream);
                 }
                 return size;
-            };
-            const getMeta = (size) => {
+            }), operators_1.mergeMap((size) => {
                 const meta = { stream: size.Body };
-                const getMetaFromSharp = meta.stream.metadata();
-                const promise = this._bindMetaToPromise(size, getMetaFromSharp);
-                return rxjs_1.from(promise);
-            };
-            const eachUpload = (size) => {
+                const getMetaFromSharp = meta.stream.toBuffer({
+                    resolveWithObject: true,
+                });
+                return rxjs_1.from(getMetaFromSharp.then((result) => {
+                    return Object.assign({}, size, result.info, { ContentType: result.info.format, currentSize: result.info.size });
+                }));
+            }), operators_1.mergeMap((size) => {
                 const { Body, ContentType } = size;
                 let newParams = Object.assign({}, params, { Body,
                     ContentType, Key: `${params.Key}-${size.suffix}` });
                 const upload = opts.s3.upload(newParams);
-                const promise = this._bindSizeToPromise(size, upload);
-                return rxjs_1.from(promise);
-            };
-            const resizeWithSharp = operators_1.map(resizeImage);
-            const getContentType = operators_1.mergeMap(getMeta);
-            const uploadToAws = operators_1.mergeMap(eachUpload);
-            sizes
-                .pipe(resizeWithSharp, getContentType, uploadToAws, operators_1.toArray())
+                let currentSize = { [size.suffix]: 0 };
+                upload.on('httpUploadProgress', function (ev) {
+                    if (ev.total) {
+                        currentSize[size.suffix] = ev.total;
+                    }
+                });
+                const upload$ = rxjs_1.from(upload.promise().then((result) => {
+                    return Object.assign({}, result, { currentSize: size.currentSize || currentSize[size.suffix], suffix: size.suffix, ContentType: size.ContentType });
+                }));
+                return upload$;
+            }), operators_1.toArray())
                 .subscribe((res) => {
-                const mapArrayToObject = res.reduce(this._iterator.bind(this), {});
+                const mapArrayToObject = res.reduce((acc, curr) => {
+                    acc[curr.suffix] = {};
+                    acc[curr.suffix].Location = curr.Location;
+                    acc[curr.suffix].Key = curr.Key;
+                    acc[curr.suffix].Size = curr.currentSize;
+                    acc[curr.suffix].Bucket = curr.Bucket;
+                    acc[curr.suffix].ACL = opts.ACL;
+                    acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType;
+                    acc[curr.suffix].ContentDisposition = opts.ContentDisposition;
+                    acc[curr.suffix].StorageClass = opts.StorageClass;
+                    acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption;
+                    acc[curr.suffix].Metadata = opts.Metadata;
+                    acc[curr.suffix].ETag = curr.ETag;
+                    return acc;
+                }, {});
                 cb(null, mapArrayToObject);
             }, cb);
         }
@@ -140,10 +140,12 @@ class S3Storage {
             const resizerStream = transformer_1.default(sharpOpts, sharpOpts.resize);
             let newParams = Object.assign({}, params, { Body: stream.pipe(resizerStream) });
             const meta = { stream: newParams.Body };
-            const meta$ = rxjs_1.from(meta.stream.metadata());
+            const meta$ = rxjs_1.from(meta.stream.toBuffer({
+                resolveWithObject: true,
+            }));
             meta$
                 .pipe(operators_1.map((metadata) => {
-                params.ContentType = opts.ContentType || metadata.format;
+                newParams.ContentType = opts.ContentType || metadata.info.format;
                 return metadata;
             }), operators_1.mergeMap((metadata) => {
                 const upload = opts.s3.upload(newParams);
@@ -152,16 +154,14 @@ class S3Storage {
                         currentSize = ev.total;
                     }
                 });
-                const upload$ = rxjs_1.from(new Promise((resolve, reject) => {
-                    upload.promise().then((res) => {
-                        resolve(Object.assign({}, res, { format: metadata.format }));
-                    }, reject);
+                const upload$ = rxjs_1.from(upload.promise().then((res) => {
+                    return Object.assign({}, res, metadata.info);
                 }));
                 return upload$;
             }))
                 .subscribe((result) => {
                 cb(null, {
-                    Size: currentSize,
+                    Size: currentSize || result.size,
                     Bucket: opts.Bucket,
                     ACL: opts.ACL,
                     ContentType: opts.ContentType || result.format,
@@ -172,25 +172,10 @@ class S3Storage {
                     Location: result.Location,
                     ETag: result.ETag,
                     Key: result.Key,
+                    mimetype: mime_types_1.lookup(result.format) || `image/${result.format}`,
                 });
             }, cb);
         }
-    }
-    _iterator(acc, curr) {
-        const { opts } = this;
-        acc[curr.suffix] = {};
-        acc[curr.suffix].Location = curr.Location;
-        acc[curr.suffix].Key = curr.Key;
-        acc[curr.suffix].Size = curr.currentSize;
-        acc[curr.suffix].Bucket = curr.Bucket;
-        acc[curr.suffix].ACL = opts.ACL;
-        acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType;
-        acc[curr.suffix].ContentDisposition = opts.ContentDisposition;
-        acc[curr.suffix].StorageClass = opts.StorageClass;
-        acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption;
-        acc[curr.suffix].Metadata = opts.Metadata;
-        acc[curr.suffix].ETag = curr.ETag;
-        return acc;
     }
     _uploadNonImage(params, file, cb) {
         const { opts } = this;

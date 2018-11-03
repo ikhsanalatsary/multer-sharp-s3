@@ -1,33 +1,30 @@
-import { from, Observable } from 'rxjs'
+import { from } from 'rxjs'
 import { map, mergeMap, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
+import { lookup } from 'mime-types'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
 import { StorageEngine } from 'multer'
-import * as express from 'express'
+import { Request } from 'express'
 import { S3 } from 'aws-sdk'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from './get-filename'
-import { Callback, S3StorageOptions, SharpOptions, ExtendSize } from './types'
+import { S3StorageOptions, SharpOptions } from './types'
 
-export type ExtendResult = ExtendSize & { currentSize: number, ContentType: 'string' }
-export type MapResult = ManagedUpload.SendData & ExtendResult
-export type EndResult = ManagedUpload.SendData & sharp.Metadata
-export type ERequest = express.Request
 export type EStream = {
-   stream: NodeJS.ReadableStream & sharp.SharpInstance
+  stream: NodeJS.ReadableStream & sharp.SharpInstance
 }
-export type EFile = Express.Multer.File & EStream & Partial<S3.Types.PutObjectRequest>
+export type EFile = Express.Multer.File &
+  EStream &
+  Partial<S3.Types.PutObjectRequest>
 export type Info = Partial<
   Express.Multer.File &
     ManagedUpload.SendData &
-    Partial<S3.Types.PutObjectRequest> & { Size: number | void }
+    Partial<S3.Types.PutObjectRequest> & { Size: number }
 >
-export type ECb = (error?: any, info?: Info) => void
 export interface S3Storage {
   opts: S3StorageOptions
   sharpOpts: SharpOptions
-  _getKey: Callback
 }
 export class S3Storage implements StorageEngine {
   protected static defaultOptions = {
@@ -59,7 +56,7 @@ export class S3Storage implements StorageEngine {
     }
   }
 
-  public _handleFile(req: ERequest, file: EFile, cb: ECb) {
+  public _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void) {
     const { opts, sharpOpts } = this
     const { mimetype, stream } = file
     if (typeof opts.Key === 'function') {
@@ -109,89 +106,91 @@ export class S3Storage implements StorageEngine {
     }
   }
 
-  public _removeFile(req: ERequest, file: EFile, cb: (error: Error) => void) {
+  public _removeFile(req: Request, file: EFile, cb: (error: Error) => void) {
     this.opts.s3.deleteObject({ Bucket: file.Bucket, Key: file.Key }, cb)
-  }
-
-  private _bindSizeToPromise(size: ExtendResult, upload: ManagedUpload) {
-    return new Promise(function(resolve, reject) {
-      let currentSize = { [size.suffix]: 0 }
-      upload.on('httpUploadProgress', function(ev) {
-        if (ev.total) {
-          currentSize[size.suffix] = ev.total
-        }
-      })
-      upload.promise().then(function(result) {
-        resolve({
-          ...result,
-          currentSize: size.currentSize || currentSize[size.suffix],
-          suffix: size.suffix,
-          ContentType: size.ContentType,
-        })
-      }, reject)
-    })
-  }
-
-  private _bindMetaToPromise(size, metadata) {
-    return new Promise(function(resolve, reject) {
-      metadata.then(function(result) {
-        resolve({
-          ...size,
-          ContentType: result.format,
-          currentSize: result.size,
-        })
-      }, reject)
-    })
   }
 
   private _uploadProcess(
     params: S3.Types.PutObjectRequest,
     file: EFile,
-    cb: ECb
+    cb: (error?: any, info?: Info) => void
   ) {
     const { opts, sharpOpts } = this
     const { stream } = file
     if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
       const sizes = from(opts.resize)
-      const resizeImage = function(size) {
-        const resizerStream = transformer(sharpOpts, size)
-        if (size.suffix === 'original') {
-          size.Body = stream.pipe(sharp())
-        } else {
-          size.Body = stream.pipe(resizerStream)
-        }
-        return size
-      }
-      const getMeta = (size) => {
-        const meta = { stream: size.Body }
-        const getMetaFromSharp = meta.stream.metadata()
-        const promise = this._bindMetaToPromise(size, getMetaFromSharp)
-        return from(promise)
-      }
-      const eachUpload = (size) => {
-        const { Body, ContentType } = size
-        let newParams = {
-          ...params,
-          Body,
-          ContentType,
-          Key: `${params.Key}-${size.suffix}`,
-        }
-        const upload = opts.s3.upload(newParams)
-        const promise = this._bindSizeToPromise(size, upload)
-        return from(promise)
-      }
-      const resizeWithSharp = map(resizeImage)
-      const getContentType = mergeMap(getMeta)
-      const uploadToAws = mergeMap(eachUpload)
       sizes
         .pipe(
-          resizeWithSharp,
-          getContentType,
-          uploadToAws,
+          map((size) => {
+            const resizerStream = transformer(sharpOpts, size)
+            if (size.suffix === 'original') {
+              size.Body = stream.pipe(sharp())
+            } else {
+              size.Body = stream.pipe(resizerStream)
+            }
+            return size
+          }),
+          mergeMap((size) => {
+            const meta = { stream: size.Body }
+            const getMetaFromSharp = meta.stream.toBuffer({
+              resolveWithObject: true,
+            })
+            return from(
+              getMetaFromSharp.then((result) => {
+                return {
+                  ...size,
+                  ...result.info,
+                  ContentType: result.info.format,
+                  currentSize: result.info.size,
+                }
+              })
+            )
+          }),
+          mergeMap((size) => {
+            const { Body, ContentType } = size
+            let newParams = {
+              ...params,
+              Body,
+              ContentType,
+              Key: `${params.Key}-${size.suffix}`,
+            }
+            const upload = opts.s3.upload(newParams)
+            let currentSize = { [size.suffix]: 0 }
+            upload.on('httpUploadProgress', function(ev) {
+              if (ev.total) {
+                currentSize[size.suffix] = ev.total
+              }
+            })
+            const upload$ = from(
+              upload.promise().then((result) => {
+                return {
+                  ...result,
+                  currentSize: size.currentSize || currentSize[size.suffix],
+                  suffix: size.suffix,
+                  ContentType: size.ContentType,
+                }
+              })
+            )
+            return upload$
+          }),
           toArray()
         )
         .subscribe((res) => {
-          const mapArrayToObject = res.reduce(this._iterator.bind(this), {})
+          const mapArrayToObject = res.reduce((acc, curr) => {
+            acc[curr.suffix] = {}
+            acc[curr.suffix].Location = curr.Location
+            acc[curr.suffix].Key = curr.Key
+            acc[curr.suffix].Size = curr.currentSize
+            acc[curr.suffix].Bucket = curr.Bucket
+            acc[curr.suffix].ACL = opts.ACL
+            acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
+            acc[curr.suffix].ContentDisposition = opts.ContentDisposition
+            acc[curr.suffix].StorageClass = opts.StorageClass
+            acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
+            acc[curr.suffix].Metadata = opts.Metadata
+            acc[curr.suffix].ETag = curr.ETag
+            return acc
+          }, {})
 
           cb(null, mapArrayToObject)
         }, cb)
@@ -200,11 +199,15 @@ export class S3Storage implements StorageEngine {
       const resizerStream = transformer(sharpOpts, sharpOpts.resize)
       let newParams = { ...params, Body: stream.pipe(resizerStream) }
       const meta = { stream: newParams.Body }
-      const meta$ = from(meta.stream.metadata())
+      const meta$ = from(
+        meta.stream.toBuffer({
+          resolveWithObject: true,
+        })
+      )
       meta$
         .pipe(
           map((metadata) => {
-            params.ContentType = opts.ContentType || metadata.format
+            newParams.ContentType = opts.ContentType || metadata.info.format
             return metadata
           }),
           mergeMap((metadata) => {
@@ -215,18 +218,16 @@ export class S3Storage implements StorageEngine {
               }
             })
             const upload$ = from(
-              new Promise((resolve, reject) => {
-                upload.promise().then((res) => {
-                  resolve({ ...res, format: metadata.format })
-                }, reject)
+              upload.promise().then((res) => {
+                return { ...res, ...metadata.info }
               })
             )
             return upload$
           })
         )
-        .subscribe((result: EndResult) => {
+        .subscribe((result) => {
           cb(null, {
-            Size: currentSize,
+            Size: currentSize || result.size,
             Bucket: opts.Bucket,
             ACL: opts.ACL,
             ContentType: opts.ContentType || result.format,
@@ -237,32 +238,16 @@ export class S3Storage implements StorageEngine {
             Location: result.Location,
             ETag: result.ETag,
             Key: result.Key,
+            mimetype: lookup(result.format) || `image/${result.format}`,
           })
         }, cb)
     }
   }
 
-  private _iterator(acc, curr: MapResult) {
-    const { opts } = this
-    acc[curr.suffix] = {}
-    acc[curr.suffix].Location = curr.Location
-    acc[curr.suffix].Key = curr.Key
-    acc[curr.suffix].Size = curr.currentSize
-    acc[curr.suffix].Bucket = curr.Bucket
-    acc[curr.suffix].ACL = opts.ACL
-    acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
-    acc[curr.suffix].ContentDisposition = opts.ContentDisposition
-    acc[curr.suffix].StorageClass = opts.StorageClass
-    acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
-    acc[curr.suffix].Metadata = opts.Metadata
-    acc[curr.suffix].ETag = curr.ETag
-    return acc
-  }
-
   private _uploadNonImage(
     params: S3.Types.PutObjectRequest,
     file: EFile,
-    cb: ECb
+    cb: (error?: any, info?: Info) => void
   ) {
     const { opts } = this
     const { mimetype } = file

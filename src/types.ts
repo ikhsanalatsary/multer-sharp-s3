@@ -10,9 +10,9 @@ import {
   PngOptions,
   Metadata,
   Kernel,
+  SharpInstance,
 } from 'sharp'
 import { S3 } from 'aws-sdk'
-import * as express from 'express'
 
 export interface Size {
   width?: number
@@ -38,9 +38,10 @@ export interface Format {
 
 export interface ExtendSize {
   suffix: string
+  Body?: NodeJS.ReadableStream & SharpInstance
 }
 
-export type SharpOption<T = string> = void | T
+export type SharpOption<T = string> = T
 
 export type ResizeOption =
   | SharpOption<Size>
@@ -77,8 +78,6 @@ export interface SharpOptions {
   toColorspace?: SharpOption
   toFormat?: SharpOption<string | Format>
 }
-
-export type Callback = (req: express.Request, file: Express.Multer.File, callback: (error?: any, info?: string) => void) => void;
 
 export interface CloudStorageOptions
   extends Partial<S3.Types.PutObjectRequest> {
