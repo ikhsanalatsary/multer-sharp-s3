@@ -1,4 +1,13 @@
 "use strict";
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) if (e.indexOf(p[i]) < 0)
+            t[p[i]] = s[p[i]];
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
@@ -112,7 +121,9 @@ class S3Storage {
                     }
                 });
                 const upload$ = rxjs_1.from(upload.promise().then((result) => {
-                    return Object.assign({}, result, { currentSize: size.currentSize || currentSize[size.suffix], suffix: size.suffix, ContentType: size.ContentType });
+                    // tslint:disable-next-line
+                    const { Body } = size, rest = __rest(size, ["Body"]);
+                    return Object.assign({}, result, rest, { currentSize: size.currentSize || currentSize[size.suffix] });
                 }));
                 return upload$;
             }), operators_1.toArray())
@@ -121,7 +132,7 @@ class S3Storage {
                     acc[curr.suffix] = {};
                     acc[curr.suffix].Location = curr.Location;
                     acc[curr.suffix].Key = curr.Key;
-                    acc[curr.suffix].Size = curr.currentSize;
+                    acc[curr.suffix].size = curr.currentSize;
                     acc[curr.suffix].Bucket = curr.Bucket;
                     acc[curr.suffix].ACL = opts.ACL;
                     acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType;
@@ -130,6 +141,8 @@ class S3Storage {
                     acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption;
                     acc[curr.suffix].Metadata = opts.Metadata;
                     acc[curr.suffix].ETag = curr.ETag;
+                    acc[curr.suffix].width = curr.width;
+                    acc[curr.suffix].height = curr.height;
                     return acc;
                 }, {});
                 cb(null, mapArrayToObject);
@@ -161,7 +174,7 @@ class S3Storage {
             }))
                 .subscribe((result) => {
                 cb(null, {
-                    Size: currentSize || result.size,
+                    size: currentSize || result.size,
                     Bucket: opts.Bucket,
                     ACL: opts.ACL,
                     ContentType: opts.ContentType || result.format,
@@ -173,6 +186,8 @@ class S3Storage {
                     ETag: result.ETag,
                     Key: result.Key,
                     mimetype: mime_types_1.lookup(result.format) || `image/${result.format}`,
+                    width: result.width,
+                    height: result.height,
                 });
             }, cb);
         }
@@ -190,7 +205,7 @@ class S3Storage {
         });
         upload.promise().then((result) => {
             cb(null, {
-                Size: currentSize,
+                size: currentSize,
                 Bucket: opts.Bucket,
                 ACL: opts.ACL,
                 ContentType: opts.ContentType || mimetype,

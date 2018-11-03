@@ -10,9 +10,7 @@ export declare type EStream = {
     stream: NodeJS.ReadableStream & sharp.SharpInstance;
 };
 export declare type EFile = Express.Multer.File & EStream & Partial<S3.Types.PutObjectRequest>;
-export declare type Info = Partial<Express.Multer.File & ManagedUpload.SendData & Partial<S3.Types.PutObjectRequest> & {
-    Size: number;
-}>;
+export declare type Info = Partial<Express.Multer.File & ManagedUpload.SendData & S3.Types.PutObjectRequest & sharp.OutputInfo>;
 export interface S3Storage {
     opts: S3StorageOptions;
     sharpOpts: SharpOptions;
