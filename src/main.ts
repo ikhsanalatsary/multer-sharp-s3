@@ -20,7 +20,7 @@ export type EFile = Express.Multer.File &
 export type Info = Partial<
   Express.Multer.File &
     ManagedUpload.SendData &
-    Partial<S3.Types.PutObjectRequest> & { Size: number }
+    Partial<S3.Types.PutObjectRequest & sharp.OutputInfo>
 >
 export interface S3Storage {
   opts: S3StorageOptions
@@ -163,11 +163,12 @@ export class S3Storage implements StorageEngine {
             })
             const upload$ = from(
               upload.promise().then((result) => {
+                // tslint:disable-next-line
+                const { Body, ...rest } = size
                 return {
                   ...result,
+                  ...rest,
                   currentSize: size.currentSize || currentSize[size.suffix],
-                  suffix: size.suffix,
-                  ContentType: size.ContentType,
                 }
               })
             )
@@ -180,7 +181,7 @@ export class S3Storage implements StorageEngine {
             acc[curr.suffix] = {}
             acc[curr.suffix].Location = curr.Location
             acc[curr.suffix].Key = curr.Key
-            acc[curr.suffix].Size = curr.currentSize
+            acc[curr.suffix].size = curr.currentSize
             acc[curr.suffix].Bucket = curr.Bucket
             acc[curr.suffix].ACL = opts.ACL
             acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
@@ -189,6 +190,8 @@ export class S3Storage implements StorageEngine {
             acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
             acc[curr.suffix].Metadata = opts.Metadata
             acc[curr.suffix].ETag = curr.ETag
+            acc[curr.suffix].width = curr.width
+            acc[curr.suffix].height = curr.height
             return acc
           }, {})
 
@@ -227,7 +230,7 @@ export class S3Storage implements StorageEngine {
         )
         .subscribe((result) => {
           cb(null, {
-            Size: currentSize || result.size,
+            size: currentSize || result.size,
             Bucket: opts.Bucket,
             ACL: opts.ACL,
             ContentType: opts.ContentType || result.format,
@@ -239,6 +242,8 @@ export class S3Storage implements StorageEngine {
             ETag: result.ETag,
             Key: result.Key,
             mimetype: lookup(result.format) || `image/${result.format}`,
+            width: result.width,
+            height: result.height,
           })
         }, cb)
     }
@@ -261,7 +266,7 @@ export class S3Storage implements StorageEngine {
     })
     upload.promise().then((result) => {
       cb(null, {
-        Size: currentSize,
+        size: currentSize,
         Bucket: opts.Bucket,
         ACL: opts.ACL,
         ContentType: opts.ContentType || mimetype,
