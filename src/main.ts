@@ -20,7 +20,8 @@ export type EFile = Express.Multer.File &
 export type Info = Partial<
   Express.Multer.File &
     ManagedUpload.SendData &
-    Partial<S3.Types.PutObjectRequest & sharp.OutputInfo>
+    S3.Types.PutObjectRequest &
+    sharp.OutputInfo
 >
 export interface S3Storage {
   opts: S3StorageOptions
