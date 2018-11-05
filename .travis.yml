@@ -27,3 +27,5 @@ install:
   - yarn
 script:
   - yarn test
+after_success:
+  - yarn report-coverage
