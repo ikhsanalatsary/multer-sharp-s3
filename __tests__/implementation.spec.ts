@@ -383,9 +383,7 @@ describe('S3Storage', () => {
         s3,
         Bucket: config.uploads.aws.Bucket,
       })
-    ).not.toThrow(
-      'You have to specify credentials key file for AWS S3 to work.'
-    )
+    ).not.toThrow('anything')
     done()
   })
   it('should throw an error if Key is not string or function', (done) => {
