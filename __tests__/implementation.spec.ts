@@ -344,8 +344,8 @@ describe('S3Storage', () => {
     expect(
       multerSharp.bind(multerSharp, {
         s3,
-        // Bucket: config.uploads.aws.Bucket,
-        Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
+        Bucket: undefined,
+        // Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
       })
     ).toThrow('You have to specify Bucket for AWS S3 to work.')
     done()
