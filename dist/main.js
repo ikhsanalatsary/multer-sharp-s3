@@ -36,24 +36,25 @@ class S3Storage {
     _handleFile(req, file, cb) {
         const { opts, sharpOpts } = this;
         const { mimetype, stream } = file;
+        const params = {
+            Bucket: opts.Bucket,
+            ACL: opts.ACL,
+            CacheControl: opts.CacheControl,
+            ContentType: opts.ContentType,
+            Metadata: opts.Metadata,
+            StorageClass: opts.StorageClass,
+            ServerSideEncryption: opts.ServerSideEncryption,
+            SSEKMSKeyId: opts.SSEKMSKeyId,
+            Body: stream,
+            Key: opts.Key,
+        };
         if (typeof opts.Key === 'function') {
             opts.Key(req, file, (fileErr, Key) => {
                 if (fileErr) {
                     cb(fileErr);
                     return;
                 }
-                let params = {
-                    Bucket: opts.Bucket,
-                    ACL: opts.ACL,
-                    CacheControl: opts.CacheControl,
-                    ContentType: opts.ContentType,
-                    Metadata: opts.Metadata,
-                    StorageClass: opts.StorageClass,
-                    ServerSideEncryption: opts.ServerSideEncryption,
-                    SSEKMSKeyId: opts.SSEKMSKeyId,
-                    Body: stream,
-                    Key,
-                };
+                params.Key = Key;
                 if (mimetype.includes('image')) {
                     this._uploadProcess(params, file, cb);
                 }
@@ -63,18 +64,6 @@ class S3Storage {
             });
         }
         else {
-            const params = {
-                Bucket: opts.Bucket,
-                ACL: opts.ACL,
-                CacheControl: opts.CacheControl,
-                ContentType: opts.ContentType,
-                Metadata: opts.Metadata,
-                StorageClass: opts.StorageClass,
-                ServerSideEncryption: opts.ServerSideEncryption,
-                SSEKMSKeyId: opts.SSEKMSKeyId,
-                Body: stream,
-                Key: opts.Key,
-            };
             if (mimetype.includes('image')) {
                 this._uploadProcess(params, file, cb);
             }
@@ -88,7 +77,8 @@ class S3Storage {
     }
     _uploadProcess(params, file, cb) {
         const { opts, sharpOpts } = this;
-        const { stream } = file;
+        let { stream, mimetype } = file;
+        const { ACL, ContentDisposition, ContentType: optsContentType, StorageClass, ServerSideEncryption, Metadata, } = opts;
         if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
             const sizes = rxjs_1.from(opts.resize);
             sizes
@@ -129,23 +119,18 @@ class S3Storage {
             }), operators_1.toArray())
                 .subscribe((res) => {
                 const mapArrayToObject = res.reduce((acc, curr) => {
-                    acc[curr.suffix] = {};
-                    acc[curr.suffix].Location = curr.Location;
-                    acc[curr.suffix].Key = curr.Key;
-                    acc[curr.suffix].size = curr.currentSize;
-                    acc[curr.suffix].Bucket = curr.Bucket;
-                    acc[curr.suffix].ACL = opts.ACL;
-                    acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType;
-                    acc[curr.suffix].ContentDisposition = opts.ContentDisposition;
-                    acc[curr.suffix].StorageClass = opts.StorageClass;
-                    acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption;
-                    acc[curr.suffix].Metadata = opts.Metadata;
-                    acc[curr.suffix].ETag = curr.ETag;
-                    acc[curr.suffix].width = curr.width;
-                    acc[curr.suffix].height = curr.height;
+                    // tslint:disable-next-line
+                    const { suffix, ContentType, size, format, channels, options, currentSize } = curr, rest = __rest(curr, ["suffix", "ContentType", "size", "format", "channels", "options", "currentSize"]);
+                    acc[curr.suffix] = Object.assign({ ACL,
+                        ContentDisposition,
+                        StorageClass,
+                        ServerSideEncryption,
+                        Metadata }, rest, { size: currentSize, ContentType: optsContentType || ContentType });
+                    mimetype = mime_types_1.lookup(ContentType) || `image/${ContentType}`;
                     return acc;
                 }, {});
-                cb(null, mapArrayToObject);
+                mapArrayToObject.mimetype = mimetype;
+                cb(null, JSON.parse(JSON.stringify(mapArrayToObject)));
             }, cb);
         }
         else {
@@ -173,22 +158,14 @@ class S3Storage {
                 return upload$;
             }))
                 .subscribe((result) => {
-                cb(null, {
-                    size: currentSize || result.size,
-                    Bucket: opts.Bucket,
-                    ACL: opts.ACL,
-                    ContentType: opts.ContentType || result.format,
-                    ContentDisposition: opts.ContentDisposition,
-                    StorageClass: opts.StorageClass,
-                    ServerSideEncryption: opts.ServerSideEncryption,
-                    Metadata: opts.Metadata,
-                    Location: result.Location,
-                    ETag: result.ETag,
-                    Key: result.Key,
-                    mimetype: mime_types_1.lookup(result.format) || `image/${result.format}`,
-                    width: result.width,
-                    height: result.height,
-                });
+                // tslint:disable-next-line
+                const { size, format, channels } = result, rest = __rest(result, ["size", "format", "channels"]);
+                const endRes = Object.assign({ ACL,
+                    ContentDisposition,
+                    StorageClass,
+                    ServerSideEncryption,
+                    Metadata }, rest, { size: currentSize || size, ContentType: opts.ContentType || format, mimetype: mime_types_1.lookup(result.format) || `image/${result.format}` });
+                cb(null, JSON.parse(JSON.stringify(endRes)));
             }, cb);
         }
     }
@@ -196,7 +173,7 @@ class S3Storage {
         const { opts } = this;
         const { mimetype } = file;
         let currentSize = 0;
-        params.ContentType = mimetype;
+        params.ContentType = params.ContentType || mimetype;
         const upload = opts.s3.upload(params);
         upload.on('httpUploadProgress', function (ev) {
             if (ev.total) {
@@ -204,19 +181,8 @@ class S3Storage {
             }
         });
         upload.promise().then((result) => {
-            cb(null, {
-                size: currentSize,
-                Bucket: opts.Bucket,
-                ACL: opts.ACL,
-                ContentType: opts.ContentType || mimetype,
-                ContentDisposition: opts.ContentDisposition,
-                StorageClass: opts.StorageClass,
-                ServerSideEncryption: opts.ServerSideEncryption,
-                Metadata: opts.Metadata,
-                Location: result.Location,
-                ETag: result.ETag,
-                Key: result.Key,
-            });
+            const endRes = Object.assign({ size: currentSize, ACL: opts.ACL, ContentType: opts.ContentType || mimetype, ContentDisposition: opts.ContentDisposition, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, Metadata: opts.Metadata }, result);
+            cb(null, JSON.parse(JSON.stringify(endRes)));
         }, cb);
     }
 }

@@ -24,7 +24,7 @@ export declare class S3Storage implements StorageEngine {
     };
     constructor(options: S3StorageOptions);
     _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void): void;
-    _removeFile(req: Request, file: EFile, cb: (error: Error) => void): void;
+    _removeFile(req: Request, file: Info, cb: (error: Error) => void): void;
     private _uploadProcess;
     private _uploadNonImage;
 }
