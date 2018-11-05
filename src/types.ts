@@ -61,12 +61,12 @@ export interface SharpOptions {
   flatten?: boolean
   extend?: SharpOption<number | ExtendOptions>
   negate?: boolean
-  rotate?: boolean
+  rotate?: SharpOption<boolean | number>
   flip?: boolean
   flop?: boolean
-  blur?: SharpOption<number>
-  sharpen?: SharpOption<Sharpen>
-  gamma?: SharpOption<number>
+  blur?: SharpOption<boolean | number>
+  sharpen?: SharpOption<boolean | Sharpen>
+  gamma?: SharpOption<boolean | number>
   grayscale?: boolean
   greyscale?: boolean
   normalize?: boolean
