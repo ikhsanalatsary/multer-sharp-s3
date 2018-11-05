@@ -6,9 +6,10 @@
   "scripts": {
     "lint": "tslint -c tslint.json 'src/**/*.ts' '__tests__/**/*.ts'",
     "pretest": "npm run lint",
-    "test": "jest --detectOpenHandles --runInBand",
+    "test": "jest --detectOpenHandles --runInBand --ci --coverage",
     "build": "tsc -w false",
-    "format": "prettier --config prettier.config.js \"**/*.{ts,tsx,js,jsx,md}\""
+    "format": "prettier --config prettier.config.js \"**/*.{ts,tsx,js,jsx,md}\"",
+    "report-coverage": "cat ./coverage/lcov.info | ./node_modules/.bin/codecov"
   },
   "repository": {
     "type": "git",
@@ -57,6 +58,7 @@
     "@types/sharp": "0.17.10",
     "@types/supertest": "^2.0.6",
     "aws-sdk": "^2.348.0",
+    "codecov": "^3.1.0",
     "express": "^4.16.4",
     "jest": "^23.6.0",
     "multer": "^1.4.1",
