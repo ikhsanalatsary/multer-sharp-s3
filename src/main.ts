@@ -95,7 +95,7 @@ export class S3Storage implements StorageEngine {
     }
   }
 
-  public _removeFile(req: Request, file: EFile, cb: (error: Error) => void) {
+  public _removeFile(req: Request, file: Info, cb: (error: Error) => void) {
     this.opts.s3.deleteObject({ Bucket: file.Bucket, Key: file.Key }, cb)
   }
 
