@@ -6,7 +6,7 @@
 
 ***
 
-Multer Sharp is streaming multer storage engine permit to resize and upload to Google Cloud Storage.
+Multer Sharp S3 is streaming multer storage engine permit to transform / resize the image and upload to AWS S3.
 
 This project is mostly an integration piece for existing code samples from Multer's [storage engine documentation](https://github.com/expressjs/multer/blob/master/StorageEngine.md). With add-ons include [AWS S3](https://github.com/aws/aws-sdk-js) and [sharp](https://github.com/lovell/sharp)
 
