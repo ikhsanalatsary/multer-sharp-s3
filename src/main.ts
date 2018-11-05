@@ -60,24 +60,25 @@ export class S3Storage implements StorageEngine {
   public _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void) {
     const { opts, sharpOpts } = this
     const { mimetype, stream } = file
+    const params = {
+      Bucket: opts.Bucket,
+      ACL: opts.ACL,
+      CacheControl: opts.CacheControl,
+      ContentType: opts.ContentType,
+      Metadata: opts.Metadata,
+      StorageClass: opts.StorageClass,
+      ServerSideEncryption: opts.ServerSideEncryption,
+      SSEKMSKeyId: opts.SSEKMSKeyId,
+      Body: stream,
+      Key: opts.Key,
+    }
     if (typeof opts.Key === 'function') {
       opts.Key(req, file, (fileErr, Key) => {
         if (fileErr) {
           cb(fileErr)
           return
         }
-        let params = {
-          Bucket: opts.Bucket,
-          ACL: opts.ACL,
-          CacheControl: opts.CacheControl,
-          ContentType: opts.ContentType,
-          Metadata: opts.Metadata,
-          StorageClass: opts.StorageClass,
-          ServerSideEncryption: opts.ServerSideEncryption,
-          SSEKMSKeyId: opts.SSEKMSKeyId,
-          Body: stream,
-          Key,
-        }
+        params.Key = Key
 
         if (mimetype.includes('image')) {
           this._uploadProcess(params, file, cb)
@@ -86,19 +87,6 @@ export class S3Storage implements StorageEngine {
         }
       })
     } else {
-      const params = {
-        Bucket: opts.Bucket,
-        ACL: opts.ACL,
-        CacheControl: opts.CacheControl,
-        ContentType: opts.ContentType,
-        Metadata: opts.Metadata,
-        StorageClass: opts.StorageClass,
-        ServerSideEncryption: opts.ServerSideEncryption,
-        SSEKMSKeyId: opts.SSEKMSKeyId,
-        Body: stream,
-        Key: opts.Key,
-      }
-
       if (mimetype.includes('image')) {
         this._uploadProcess(params, file, cb)
       } else {
@@ -117,7 +105,15 @@ export class S3Storage implements StorageEngine {
     cb: (error?: any, info?: Info) => void
   ) {
     const { opts, sharpOpts } = this
-    const { stream } = file
+    let { stream, mimetype } = file
+    const {
+      ACL,
+      ContentDisposition,
+      ContentType: optsContentType,
+      StorageClass,
+      ServerSideEncryption,
+      Metadata,
+    } = opts
     if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
       const sizes = from(opts.resize)
       sizes
@@ -178,25 +174,26 @@ export class S3Storage implements StorageEngine {
           toArray()
         )
         .subscribe((res) => {
-          const mapArrayToObject = res.reduce((acc, curr) => {
-            acc[curr.suffix] = {}
-            acc[curr.suffix].Location = curr.Location
-            acc[curr.suffix].Key = curr.Key
-            acc[curr.suffix].size = curr.currentSize
-            acc[curr.suffix].Bucket = curr.Bucket
-            acc[curr.suffix].ACL = opts.ACL
-            acc[curr.suffix].ContentType = opts.ContentType || curr.ContentType
-            acc[curr.suffix].ContentDisposition = opts.ContentDisposition
-            acc[curr.suffix].StorageClass = opts.StorageClass
-            acc[curr.suffix].ServerSideEncryption = opts.ServerSideEncryption
-            acc[curr.suffix].Metadata = opts.Metadata
-            acc[curr.suffix].ETag = curr.ETag
-            acc[curr.suffix].width = curr.width
-            acc[curr.suffix].height = curr.height
-            return acc
-          }, {})
+          const mapArrayToObject: { [k: string]: any } = res.reduce(
+            (acc, curr) => {
+              // tslint:disable-next-line
+              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr
+              acc[curr.suffix] = {
+                ACL,
+                ContentDisposition,
+                StorageClass,
+                ServerSideEncryption,
+                Metadata,
+                ...rest,
+                size: currentSize,
+                ContentType: optsContentType || ContentType
+              }
+              mimetype = lookup(ContentType) || `image/${ContentType}`
+              return acc
+            }, {})
 
-          cb(null, mapArrayToObject)
+          mapArrayToObject.mimetype = mimetype
+          cb(null, JSON.parse(JSON.stringify(mapArrayToObject)))
         }, cb)
     } else {
       let currentSize = 0
@@ -230,22 +227,20 @@ export class S3Storage implements StorageEngine {
           })
         )
         .subscribe((result) => {
-          cb(null, {
-            size: currentSize || result.size,
-            Bucket: opts.Bucket,
-            ACL: opts.ACL,
-            ContentType: opts.ContentType || result.format,
-            ContentDisposition: opts.ContentDisposition,
-            StorageClass: opts.StorageClass,
-            ServerSideEncryption: opts.ServerSideEncryption,
-            Metadata: opts.Metadata,
-            Location: result.Location,
-            ETag: result.ETag,
-            Key: result.Key,
-            mimetype: lookup(result.format) || `image/${result.format}`,
-            width: result.width,
-            height: result.height,
-          })
+          // tslint:disable-next-line
+          const { size, format, channels, ...rest } = result
+          const endRes = {
+            ACL,
+            ContentDisposition,
+            StorageClass,
+            ServerSideEncryption,
+            Metadata,
+            ...rest,
+            size: currentSize || size,
+            ContentType: opts.ContentType || format,
+            mimetype: lookup(result.format) || `image/${result.format}`
+          }
+          cb(null, JSON.parse(JSON.stringify(endRes)))
         }, cb)
     }
   }
@@ -258,7 +253,7 @@ export class S3Storage implements StorageEngine {
     const { opts } = this
     const { mimetype } = file
     let currentSize = 0
-    params.ContentType = mimetype
+    params.ContentType = params.ContentType || mimetype
     const upload = opts.s3.upload(params)
     upload.on('httpUploadProgress', function(ev) {
       if (ev.total) {
@@ -266,19 +261,17 @@ export class S3Storage implements StorageEngine {
       }
     })
     upload.promise().then((result) => {
-      cb(null, {
+      const endRes = {
         size: currentSize,
-        Bucket: opts.Bucket,
         ACL: opts.ACL,
         ContentType: opts.ContentType || mimetype,
         ContentDisposition: opts.ContentDisposition,
         StorageClass: opts.StorageClass,
         ServerSideEncryption: opts.ServerSideEncryption,
         Metadata: opts.Metadata,
-        Location: result.Location,
-        ETag: result.ETag,
-        Key: result.Key,
-      })
+        ...result,
+      }
+      cb(null, JSON.parse(JSON.stringify(endRes)))
     }, cb)
   }
 }
