@@ -174,13 +174,6 @@ const upload5 = multer({ storage: storage5 });
 // })
 // const upload6 = multer({ storage: storage6 });
 
-// const storage7 = multerSharp({
-//   bucket: wrongConfig.uploads.gcsUpload.bucket,
-//   projectId: wrongConfig.uploads.gcsUpload.projectId,
-//   keyFilename: wrongConfig.uploads.gcsUpload.keyFilename
-// });
-// const upload7 = multer({ storage: storage7 });
-
 const storage8 = multerSharp({
   s3,
   Bucket: config.uploads.aws.Bucket,
@@ -291,14 +284,28 @@ app.post('/uploadanddelete', (req, res, next) => {
 //   });
 // });
 
-// app.post('/uploadwithgcserror', (req, res) => {
-//   const uploadAndError = upload7.single('myPic');
-//   uploadAndError(req, res, (uploadError) => {
-//     if (uploadError) {
-//       res.status(uploadError.code).json({ message: uploadError.message });
-//     }
-//   });
-// });
+app.post('/uploadwitherror', (req, res) => {
+  aws.config.update({
+    secretAccessKey: 'sllll', // Not working key, Your SECRET ACCESS KEY from AWS should go here, never share it!!!
+    accessKeyId: config.uploads.aws.accessKeyId, // Not working key, Your ACCESS KEY ID from AWS should go here, never share it!!!
+    region: config.uploads.aws.region, // region of your bucket
+  })
+  const s3 = new aws.S3()
+  const storage7 = multerSharp({
+    s3,
+    Bucket: config.uploads.aws.Bucket,
+    Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
+  })
+  const upload7 = multer({ storage: storage7 });
+  const uploadAndError = upload7.single('myPic');
+  uploadAndError(req, res, (uploadError) => {
+    if (uploadError) {
+      res
+        .status(uploadError.statusCode)
+        .json({ message: uploadError.message })
+    }
+  });
+});
 
 // express setup
 app.post(
@@ -484,16 +491,17 @@ describe('Upload test', () => {
   //       done();
   //     });
   // });
-  // it('upload and return error, cause google cloud error', (done) => {
-  //   supertest(app)
-  //     .post('/uploadwithgcserror')
-  //     .attach('myPic', 'test/nodejs-512.png')
-  //     .end((err, res) => {
-  //       expect(res.status).toEqual(404);
-  //       expect(res.body.message).toEqual('Not Found');
-  //       done();
-  //     });
-  // });
+  it('upload and return error, cause google cloud error', (done) => {
+    supertest(app)
+      .post('/uploadwitherror')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .end((err, res) => {
+        expect(res.status).toEqual(403)
+        expect(res.body.message).toEqual('The request signature we calculated does not match the signature you provided. Check your key and signing method.')
+        // expect(true).toBe(true)
+        done()
+      })
+  });
   it('return a req.file with multiple sizes', (done) => {
     // jest.setTimeout(done, 1000);
     supertest(app)
