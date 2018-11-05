@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "tslint -c tslint.json 'src/**/*.ts' '__tests__/**/*.ts'",
     "pretest": "npm run lint",
-    "test": "jest --detectOpenHandles --runInBand",
+    "test": "jest --detectOpenHandles --runInBand --ci",
     "build": "tsc -w false",
     "format": "prettier --config prettier.config.js \"**/*.{ts,tsx,js,jsx,md}\""
   },
