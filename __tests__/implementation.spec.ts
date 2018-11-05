@@ -63,7 +63,7 @@ const storage = multerSharp({
 const upload = multer({ storage })
 const storage2 = multerSharp({
   Key: (req, file, cb) => {
-    crypto.pseudoRandomBytes(16, function(err, raw) {
+    crypto.pseudoRandomBytes(16, (err, raw) => {
       err = Error('Something wrong')
       Error.captureStackTrace(this, this.Key)
       cb(err, err ? undefined : raw.toString('hex'))
@@ -252,7 +252,7 @@ app.post('/uploadwitherrorkey', (req, res, next) => {
    upload2.single('myPic')(req, res, (errorFile) => {
     lastReq = req
     lastRes = res
-    // console.log(errorFile.stack);
+    console.log(errorFile.stack);
     res.status(400).json({ message: errorFile.message })
 
     next()
