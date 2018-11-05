@@ -18,7 +18,7 @@ This project is mostly an integration piece for existing code samples from Multe
 
 npm:
 
-  npm install --save aws-sdk multer-sharp-s3
+	npm install --save aws-sdk multer-sharp-s3
 
 yarn:
 
@@ -204,7 +204,7 @@ multer sharp s3 embraces sharp options, as table below:
 ***
 
 ## Why
-Because We need to transform an image using sharp and upload it to AWS S3 using multer middleware at once. And build on top with [TypeScript](https://www.typescriptlang.org/) and reactive using [RxJS](https://rxjs-dev.firebaseapp.com/) as helper library in this package.
+Because We need to transform an image using sharp and upload it to AWS S3 using multer middleware at once. Build on top with [TypeScript](https://www.typescriptlang.org/) and reactive using [RxJS](https://rxjs-dev.firebaseapp.com/) as helper library in this package.
 
 ![Mantra](http://i.imgur.com/AIimQ8C.jpg)
 
