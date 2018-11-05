@@ -63,7 +63,7 @@ const storage = multerSharp({
 const upload = multer({ storage })
 const storage2 = multerSharp({
   Key: (req, file, cb) => {
-    crypto.pseudoRandomBytes(16, function(err, raw) {
+    crypto.pseudoRandomBytes(16, (err, raw) => {
       err = Error('Something wrong')
       Error.captureStackTrace(this, this.Key)
       cb(err, err ? undefined : raw.toString('hex'))
