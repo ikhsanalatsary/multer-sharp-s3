@@ -252,7 +252,7 @@ app.post('/uploadwitherrorkey', (req, res, next) => {
    upload2.single('myPic')(req, res, (errorFile) => {
     lastReq = req
     lastRes = res
-    console.log(errorFile.stack);
+    // console.log(errorFile.stack);
     res.status(400).json({ message: errorFile.message })
 
     next()
