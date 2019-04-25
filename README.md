@@ -2,7 +2,8 @@
 
 [![Build Status](https://travis-ci.org/ikhsanalatsary/multer-sharp-s3.svg?branch=master)](https://travis-ci.org/ikhsanalatsary/multer-sharp-s3)
 [![codecov.io](https://codecov.io/gh/ikhsanalatsary/multer-sharp-s3/coverage.svg?branch=master)](https://codecov.io/gh/ikhsanalatsary/multer-sharp?branch=master) [![Depedencies Status](https://david-dm.org/ikhsanalatsary/multer-sharp-s3.svg)](https://david-dm.org/ikhsanalatsary/multer-sharp-s3) [![devDepedencies Status](https://david-dm.org/ikhsanalatsary/multer-sharp-s3/dev-status.svg)](https://david-dm.org/ikhsanalatsary/multer-sharp-s3?type=dev)
-<!-- [![npm](https://img.shields.io/npm/dm/multer-sharp-s3.svg)]() [![Greenkeeper badge](https://badges.greenkeeper.io/ikhsanalatsary/multer-sharp-s3.svg)](https://greenkeeper.io/) -->
+[![npm](https://img.shields.io/npm/dm/multer-sharp-s3.svg)](http://npm.im/multer-sharp-s3)
+[![Greenkeeper badge](https://badges.greenkeeper.io/ikhsanalatsary/multer-sharp-s3.svg)](https://greenkeeper.io/)
 
 ***
 
