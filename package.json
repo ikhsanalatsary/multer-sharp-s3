@@ -72,7 +72,7 @@
   "dependencies": {
     "mime-types": "^2.1.21",
     "rxjs": "^6.3.3",
-    "sharp": "0.22.0",
+    "sharp": "0.22.1",
     "yarn.lock": "^0.0.1-security"
   },
   "jest": {
