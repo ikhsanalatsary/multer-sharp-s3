@@ -10,7 +10,7 @@ import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from './get-filename'
 import { S3StorageOptions, SharpOptions } from './types'
-
+import { PassThrough } from 'stream'
 export type EStream = {
   stream: NodeJS.ReadableStream & sharp.SharpInstance
 }
@@ -57,7 +57,11 @@ export class S3Storage implements StorageEngine {
     }
   }
 
-  public _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void) {
+  public _handleFile(
+    req: Request,
+    file: EFile,
+    cb: (error?: any, info?: Info) => void
+  ) {
     const { opts, sharpOpts } = this
     const { mimetype, stream } = file
     const params = {
@@ -145,9 +149,11 @@ export class S3Storage implements StorageEngine {
           }),
           mergeMap((size) => {
             const { Body, ContentType } = size
+            const streamCopy = new PassThrough()
+            Body.pipe(streamCopy)
             let newParams = {
               ...params,
-              Body,
+              Body: streamCopy,
               ContentType,
               Key: `${params.Key}-${size.suffix}`,
             }
@@ -177,7 +183,16 @@ export class S3Storage implements StorageEngine {
           const mapArrayToObject: { [k: string]: any } = res.reduce(
             (acc, curr) => {
               // tslint:disable-next-line
-              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr
+              const {
+                suffix,
+                ContentType,
+                size,
+                format,
+                channels,
+                options,
+                currentSize,
+                ...rest
+              } = curr
               acc[curr.suffix] = {
                 ACL,
                 ContentDisposition,
@@ -186,11 +201,13 @@ export class S3Storage implements StorageEngine {
                 Metadata,
                 ...rest,
                 size: currentSize,
-                ContentType: optsContentType || ContentType
+                ContentType: optsContentType || ContentType,
               }
               mimetype = lookup(ContentType) || `image/${ContentType}`
               return acc
-            }, {})
+            },
+            {}
+          )
 
           mapArrayToObject.mimetype = mimetype
           cb(null, JSON.parse(JSON.stringify(mapArrayToObject)))
@@ -238,7 +255,7 @@ export class S3Storage implements StorageEngine {
             ...rest,
             size: currentSize || size,
             ContentType: opts.ContentType || format,
-            mimetype: lookup(result.format) || `image/${result.format}`
+            mimetype: lookup(result.format) || `image/${result.format}`,
           }
           cb(null, JSON.parse(JSON.stringify(endRes)))
         }, cb)
