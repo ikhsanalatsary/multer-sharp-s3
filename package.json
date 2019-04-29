@@ -56,7 +56,7 @@
     "@types/mime-types": "^2.1.0",
     "@types/multer": "^1.3.7",
     "@types/node": "^11.13.7",
-    "@types/sharp": "0.22.1",
+    "@types/sharp": "0.17.10",
     "@types/supertest": "^2.0.6",
     "aws-sdk": "^2.348.0",
     "codecov": "^3.1.0",
@@ -72,7 +72,7 @@
   "dependencies": {
     "mime-types": "^2.1.21",
     "rxjs": "^6.3.3",
-    "sharp": "0.22.1",
+    "sharp": "0.20.8",
     "yarn.lock": "^0.0.1-security"
   },
   "jest": {
