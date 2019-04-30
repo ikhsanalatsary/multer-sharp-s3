@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import * as sharp from 'sharp';
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload';
 import { StorageEngine } from 'multer';
