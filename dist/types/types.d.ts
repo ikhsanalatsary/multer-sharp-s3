@@ -1,65 +1,89 @@
-/// <reference types="node" />
-import { ResizeOptions, RGBA, Region, ExtendOptions, ThresholdOptions, AvailableFormatInfo, OutputOptions, JpegOptions, PngOptions, Metadata, Kernel, SharpInstance } from 'sharp';
-import { S3 } from 'aws-sdk';
-export interface Size {
-    width?: number;
-    height?: number;
-    options?: ResizeOptions;
+import {
+  ResizeOptions,
+  RGBA,
+  Region,
+  ExtendOptions,
+  ThresholdOptions,
+  AvailableFormatInfo,
+  OutputOptions,
+  JpegOptions,
+  PngOptions,
+  Metadata,
+  Kernel,
+  SharpInstance,
+} from 'sharp'
+import { S3 } from 'aws-sdk'
+
+export declare interface Size {
+  width?: number
+  height?: number
+  options?: ResizeOptions
 }
-export interface Sharpen {
-    sigma?: number;
-    flat?: number;
-    jagged?: number;
+
+export declare interface Sharpen {
+  sigma?: number
+  flat?: number
+  jagged?: number
 }
-export interface Threshold {
-    threshold?: number;
-    options?: ThresholdOptions;
+
+export declare interface Threshold {
+  threshold?: number
+  options?: ThresholdOptions
 }
-export interface Format {
-    type: string | AvailableFormatInfo;
-    options?: OutputOptions | JpegOptions | PngOptions;
+
+export declare interface Format {
+  type: string | AvailableFormatInfo
+  options?: OutputOptions | JpegOptions | PngOptions
 }
-export interface ExtendSize {
-    suffix: string;
-    Body?: NodeJS.ReadableStream & SharpInstance;
+
+export declare interface ExtendSize {
+  suffix: string
+  Body?: NodeJS.ReadableStream & SharpInstance
 }
-export declare type SharpOption<T = string> = T;
-export declare type ResizeOption = SharpOption<Size> | Array<SharpOption<Size & ExtendSize>>;
-export interface SharpOptions {
-    resize?: ResizeOption;
-    crop?: SharpOption<string | number>;
-    background?: SharpOption<RGBA | string>;
-    embed?: boolean;
-    max?: boolean;
-    min?: boolean;
-    withoutEnlargement?: boolean;
-    ignoreAspectRatio?: boolean;
-    extract?: SharpOption<Region>;
-    trim?: SharpOption<number>;
-    flatten?: boolean;
-    extend?: SharpOption<number | ExtendOptions>;
-    negate?: boolean;
-    rotate?: SharpOption<boolean | number>;
-    flip?: boolean;
-    flop?: boolean;
-    blur?: SharpOption<boolean | number>;
-    sharpen?: SharpOption<boolean | Sharpen>;
-    gamma?: SharpOption<boolean | number>;
-    grayscale?: boolean;
-    greyscale?: boolean;
-    normalize?: boolean;
-    normalise?: boolean;
-    withMetadata?: SharpOption<Metadata>;
-    convolve?: SharpOption<Kernel>;
-    threshold?: SharpOption<number | Threshold>;
-    toColourspace?: SharpOption;
-    toColorspace?: SharpOption;
-    toFormat?: SharpOption<string | Format>;
+
+export declare type SharpOption<T = string> = T
+
+export declare type ResizeOption =
+  | SharpOption<Size>
+  | Array<SharpOption<Size & ExtendSize>>
+
+export declare interface SharpOptions {
+  resize?: ResizeOption
+  crop?: SharpOption<string | number>
+  background?: SharpOption<RGBA | string>
+  embed?: boolean
+  max?: boolean
+  min?: boolean
+  withoutEnlargement?: boolean
+  ignoreAspectRatio?: boolean
+  extract?: SharpOption<Region>
+  trim?: SharpOption<number>
+  flatten?: boolean
+  extend?: SharpOption<number | ExtendOptions>
+  negate?: boolean
+  rotate?: SharpOption<boolean | number>
+  flip?: boolean
+  flop?: boolean
+  blur?: SharpOption<boolean | number>
+  sharpen?: SharpOption<boolean | Sharpen>
+  gamma?: SharpOption<boolean | number>
+  grayscale?: boolean
+  greyscale?: boolean
+  normalize?: boolean
+  normalise?: boolean
+  withMetadata?: SharpOption<Metadata>
+  convolve?: SharpOption<Kernel>
+  threshold?: SharpOption<number | Threshold>
+  toColourspace?: SharpOption
+  toColorspace?: SharpOption
+  toFormat?: SharpOption<string | Format>
 }
-export interface CloudStorageOptions extends Partial<S3.Types.PutObjectRequest> {
-    Key?: any;
-    multiple?: boolean;
-    s3: S3;
+
+export declare interface CloudStorageOptions
+  extends Partial<S3.Types.PutObjectRequest> {
+  Key?: any
+  multiple?: boolean
+  s3: S3
 }
-export declare type S3StorageOptions = CloudStorageOptions & SharpOptions;
-//# sourceMappingURL=types.d.ts.map
+
+export declare type S3StorageOptions = CloudStorageOptions & SharpOptions
