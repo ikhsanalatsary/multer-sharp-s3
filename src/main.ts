@@ -1,11 +1,12 @@
 import { from } from 'rxjs'
-import { map, mergeMap, toArray } from 'rxjs/operators'
+import { map, mergeMap, take, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
 import { lookup } from 'mime-types'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
 import { StorageEngine } from 'multer'
 import { Request } from 'express'
 import { S3 } from 'aws-sdk'
+import { PassThrough } from 'stream'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from './get-filename'
@@ -118,12 +119,15 @@ export class S3Storage implements StorageEngine {
       const sizes = from(opts.resize)
       sizes
         .pipe(
+          take(opts.resize.length),
           map((size) => {
+            const streamCopy = new PassThrough()
+            stream.pipe(streamCopy)
             const resizerStream = transformer(sharpOpts, size)
             if (size.suffix === 'original') {
-              size.Body = stream.pipe(sharp())
+              size.Body = streamCopy.pipe(sharp())
             } else {
-              size.Body = stream.pipe(resizerStream)
+              size.Body = streamCopy.pipe(resizerStream)
             }
             return size
           }),
@@ -145,9 +149,11 @@ export class S3Storage implements StorageEngine {
           }),
           mergeMap((size) => {
             const { Body, ContentType } = size
+            const streamCopy = new PassThrough()
+            Body.pipe(streamCopy)
             let newParams = {
               ...params,
-              Body,
+              Body: streamCopy,
               ContentType,
               Key: `${params.Key}-${size.suffix}`,
             }

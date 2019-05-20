@@ -13,6 +13,7 @@ const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
 const sharp = require("sharp");
 const mime_types_1 = require("mime-types");
+const stream_1 = require("stream");
 const get_sharp_options_1 = require("./get-sharp-options");
 const transformer_1 = require("./transformer");
 const get_filename_1 = require("./get-filename");
@@ -82,13 +83,15 @@ class S3Storage {
         if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
             const sizes = rxjs_1.from(opts.resize);
             sizes
-                .pipe(operators_1.map((size) => {
+                .pipe(operators_1.take(opts.resize.length), operators_1.map((size) => {
+                const streamCopy = new stream_1.PassThrough();
+                stream.pipe(streamCopy);
                 const resizerStream = transformer_1.default(sharpOpts, size);
                 if (size.suffix === 'original') {
-                    size.Body = stream.pipe(sharp());
+                    size.Body = streamCopy.pipe(sharp());
                 }
                 else {
-                    size.Body = stream.pipe(resizerStream);
+                    size.Body = streamCopy.pipe(resizerStream);
                 }
                 return size;
             }), operators_1.mergeMap((size) => {
@@ -101,8 +104,9 @@ class S3Storage {
                 }));
             }), operators_1.mergeMap((size) => {
                 const { Body, ContentType } = size;
-                let newParams = Object.assign({}, params, { Body,
-                    ContentType, Key: `${params.Key}-${size.suffix}` });
+                const streamCopy = new stream_1.PassThrough();
+                Body.pipe(streamCopy);
+                let newParams = Object.assign({}, params, { Body: streamCopy, ContentType, Key: `${params.Key}-${size.suffix}` });
                 const upload = opts.s3.upload(newParams);
                 let currentSize = { [size.suffix]: 0 };
                 upload.on('httpUploadProgress', function (ev) {

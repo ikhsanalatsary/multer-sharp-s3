@@ -28,8 +28,8 @@ aws.config.update({
 })
 
 const s3 = new aws.S3()
-
 const app = express()
+const agent = supertest.agent(app)
 // const wrongConfig = {
 //   uploads: {
 //     gcsUpload: {
@@ -232,6 +232,36 @@ const storage11 = multerSharp({
 })
 const upload11 = multer({ storage: storage11 })
 
+const storage12 = multerSharp({
+  s3,
+  Bucket: `${config.uploads.aws.Bucket}/uploadMultiArray`,
+  Key: (req, file, cb) => {
+    crypto.pseudoRandomBytes(16, (err, raw) => {
+      cb(err, err ? undefined : raw.toString('hex'))
+    })
+  },
+  multiple: true,
+  resize: [
+    // { suffix: 'xlg', width: 1200, height: 1200 },
+    { suffix: 'original' },
+    { suffix: 'md', width: 500, height: 500 },
+    { suffix: 'sm', width: 300, height: 300 },
+    { suffix: 'xs', width: 100, height: 100 },
+  ],
+})
+const upload12 = multer({ storage: storage12 })
+
+const storage13 = multerSharp({
+  s3,
+  Bucket: `${config.uploads.aws.Bucket}/uploadArray`,
+  multiple: true,
+  resize: {
+    width: 400,
+    height: 400,
+  },
+})
+const upload13 = multer({ storage: storage13 })
+
 // express setup
 app.get('/book', (req, res) => {
   res.sendStatus(200)
@@ -243,6 +273,7 @@ app.post('/upload', (req, res, next) => {
     lastReq = req
     lastRes = res
     res.sendStatus(200)
+    // console.log(err)
     next()
   })
 })
@@ -275,7 +306,7 @@ app.post('/uploadwithsharpsetting', upload4.single('myPic'), (req, res, next) =>
   next();
 });
 
-// // express setup
+// express setup
 app.post('/uploadanddelete', (req, res, next) => {
   upload5.single('myPic')(req, res, (err) => {
     if (err) {next(err)}
@@ -342,6 +373,26 @@ app.post(
   }
 )
 
+app.post('/uploadarraywithmultiplesize', upload12.array('myPic', 2), (req, res, next) => {
+  lastReq = req;
+  lastRes = res;
+
+  if (lastReq && lastReq.files) {
+    res.sendStatus(200);
+  }
+  next();
+});
+
+app.post('/uploadarray', upload13.array('myPic', 2), (req, res, next) => {
+  lastReq = req;
+  lastRes = res;
+
+  if (lastReq && lastReq.files) {
+    res.sendStatus(200);
+  }
+  next();
+});
+
 // app.post('/uploadwithmultiplesizetransformerror', (req, res) => {
 //   const uploadAndError = upload9.single('myPic');
 //   uploadAndError(req, res, (uploadError) => {
@@ -398,12 +449,12 @@ describe('S3Storage', () => {
 describe('Upload test', () => {
   //   this.timeout(15000);
   it('initial server', (done) => {
-    supertest(app)
+    agent
       .get('/book')
       .expect(200, done)
   })
   it('successfully uploads a file', (done) => {
-    supertest(app)
+    agent
       .post('/upload')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err) => {
@@ -420,7 +471,7 @@ describe('Upload test', () => {
   })
 
   // it('returns a req.file with the Google Cloud Storage filename and path', (done) => {
-  //   supertest(app)
+  //   agent
   //     .post('/upload')
   //     .attach('myPic', 'test/nodejs-512.png')
   //     .end(() => {
@@ -438,9 +489,9 @@ describe('Upload test', () => {
   //     });
   // });
   it('return a req.file with type application/javascript ', (done) => {
-    supertest(app)
+    agent
       .post('/uploadfile')
-      .attach('myFile', 'wallaby.js')
+      .attach('myFile', '__tests__/__ignore__/wallaby.js')
       .end(() => {
         const file = lastReq.file
         expect(file).toHaveProperty('Key')
@@ -455,7 +506,7 @@ describe('Upload test', () => {
       })
   })
   it('return an error when creating random key', (done) => {
-    supertest(app)
+    agent
       .post('/uploadwitherrorkey')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err, res) => {
@@ -465,7 +516,7 @@ describe('Upload test', () => {
       })
   });
   it('return a req.file with mimetype image/jpeg', (done) => {
-    supertest(app)
+    agent
       .post('/uploadwithsharpsetting')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end(() => {
@@ -482,13 +533,13 @@ describe('Upload test', () => {
       })
   });
   it('upload and delete after', (done) => {
-    supertest(app)
+    agent
       .post('/uploadanddelete')
       .attach('myPic', '__tests__/nodejs-512.png')
       .expect(200, done)
   });
   it('upload and return error, cause transform/resize error', (done) => {
-    supertest(app)
+    agent
       .post('/uploadwithtransformerror')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err, res) => {
@@ -498,7 +549,7 @@ describe('Upload test', () => {
       })
   });
   it('upload and return error, cause wrong configuration', (done) => {
-    supertest(app)
+    agent
       .post('/uploadwitherror')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err, res) => {
@@ -510,7 +561,7 @@ describe('Upload test', () => {
   });
   it('return a req.file with multiple sizes', (done) => {
     // jest.setTimeout(done, 1000);
-    supertest(app)
+    agent
       .post('/uploadwithmultiplesize')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end(() => {
@@ -535,9 +586,9 @@ describe('Upload test', () => {
       })
   })
   it('upload file without Key', (done) => {
-    supertest(app)
+    agent
       .post('/uploadfilewithdefaultkey')
-      .attach('myFile', '.travis.yml')
+      .attach('myFile', '__tests__/try.txt')
       .end((err, res) => {
         const { file } = lastReq
         expect(file).toHaveProperty('Key')
@@ -545,14 +596,40 @@ describe('Upload test', () => {
         expect(file).toHaveProperty('encoding')
         expect(file).toHaveProperty('mimetype')
         expect(file).toHaveProperty('originalname')
-        expect(file.mimetype).toMatch('text/yaml')
+        expect(file.mimetype).toMatch('text/plain')
         expect(file.fieldname).toMatch('myFile')
         expect(file.Location).toMatch('aws')
         done()
       })
   });
+  it('return a req.files', (done) => {
+    // jest.setTimeout(done, 1000);
+    agent
+      .post('/uploadarray')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .end(() => {
+        const file = lastReq.files;
+        console.log('files 1 ', file);
+        expect(file).toHaveLength(2);
+        done();
+      });
+  });
+  it('return a req.files with multiple sizes', (done) => {
+    // jest.setTimeout(done, 1000);
+    agent
+      .post('/uploadarraywithmultiplesize')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .end(() => {
+        const file = lastReq.files;
+        console.log('files 2 ', file);
+        expect(file).toHaveLength(2);
+        done();
+      });
+  });
   // it('upload multisize and return error, cause transform/resize error', (done) => {
-  //   supertest(app)
+  //   agent
   //     .post('/uploadwithmultiplesizetransformerror')
   //     .attach('myPic', 'test/nodejs-512.png')
   //     .end((err, res) => {
@@ -562,7 +639,7 @@ describe('Upload test', () => {
   //     });
   // });
   // it('upload multisize and return error, cause google cloud error', (done) => {
-  //   supertest(app)
+  //   agent
   //     .post('/uploadwithmultiplesizegcerror')
   //     .attach('myPic', 'test/nodejs-512.png')
   //     .end((err, res) => {

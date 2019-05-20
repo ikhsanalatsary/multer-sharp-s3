@@ -11,7 +11,8 @@
     "build": "tsc -w false",
     "postbuild": "node scripts/copy.js",
     "format": "prettier --config prettier.config.js \"**/*.{ts,tsx,js,jsx,md}\"",
-    "report-coverage": "cat ./coverage/lcov.info | ./node_modules/.bin/codecov"
+    "report-coverage": "cat ./coverage/lcov.info | ./node_modules/.bin/codecov",
+    "run:example": "node examples/server.js"
   },
   "repository": {
     "type": "git",
@@ -77,21 +78,8 @@
     "sharp": "0.20.8",
     "yarn.lock": "^0.0.1-security"
   },
-  "jest": {
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js"
-    ],
-    "transform": {
-      "\\.(ts|tsx)$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
-    },
-    "testRegex": "/__tests__/.*\\.(ts|tsx|js)$",
-    "verbose": true,
-    "notify": false,
-    "bail": false
-  },
   "peerDependencies": {
+    "multer": "^1.4.1",
     "aws-sdk": "^2.445.0",
     "rxjs": "^6.5.1",
     "sharp": ">= 0.170 <= 0.20.8"
