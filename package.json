@@ -67,7 +67,7 @@
     "prettier": "^1.17.0",
     "shx": "0.3.2",
     "supertest": "^4.0.2",
-    "ts-jest": "^24.0.2",
+    "ts-jest": "^25.1.0",
     "ts-lint": "^4.5.1",
     "typescript": "3.4.5"
   },
