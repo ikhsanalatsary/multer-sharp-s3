@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ikhsanalatsary/multer-sharp-s3.git"
+    "url": "git+https://github.com/samlevin/multer-sharp-s3.git"
   },
   "author": "Abdul Fattah Ikhsan <ikhsannetwork@gmail.com> (http://ikhsannetwork.com/)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ikhsanalatsary/multer-sharp-s3/issues"
+    "url": "https://github.com/samlevin/multer-sharp-s3/issues"
   },
-  "homepage": "https://github.com/ikhsanalatsary/multer-sharp-s3#readme",
+  "homepage": "https://github.com/samlevin/multer-sharp-s3#readme",
   "files": [
     "LICENSE",
     "README.md",
@@ -54,27 +54,27 @@
   "devDependencies": {
     "@types/core-js": "^2.5.0",
     "@types/express": "^4.16.1",
-    "@types/jest": "^24.0.12",
+    "@types/jest": "^25.1.0",
     "@types/mime-types": "^2.1.0",
     "@types/multer": "^1.3.7",
-    "@types/sharp": "0.17.10",
+    "@types/sharp": "0.24.0",
     "@types/supertest": "^2.0.7",
     "aws-sdk": "^2.445.0",
     "codecov": "^3.3.0",
     "express": "^4.16.4",
-    "jest": "^24.0.12",
+    "jest": "^25.1.0",
     "multer": "^1.4.1",
     "prettier": "^1.17.0",
     "shx": "0.3.2",
     "supertest": "^4.0.2",
-    "ts-jest": "^24.0.2",
+    "ts-jest": "^25.1.0",
     "ts-lint": "^4.5.1",
     "typescript": "3.4.5"
   },
   "dependencies": {
     "mime-types": "2.1.24",
     "rxjs": "6.5.1",
-    "sharp": "0.20.8",
+    "sharp": "0.23.4",
     "yarn.lock": "^0.0.1-security"
   },
   "jest": {
@@ -94,6 +94,6 @@
   "peerDependencies": {
     "aws-sdk": "^2.445.0",
     "rxjs": "^6.5.1",
-    "sharp": ">= 0.170 <= 0.20.8"
+    "sharp": ">= 0.170 <= 0.23.4"
   }
 }

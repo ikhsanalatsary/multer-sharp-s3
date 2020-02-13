@@ -10,7 +10,7 @@ import {
   PngOptions,
   Metadata,
   Kernel,
-  SharpInstance,
+  Sharp,
 } from 'sharp'
 import { S3 } from 'aws-sdk'
 
@@ -38,7 +38,7 @@ export declare interface Format {
 
 export declare interface ExtendSize {
   suffix: string
-  Body?: NodeJS.ReadableStream & SharpInstance
+  Body?: NodeJS.ReadableStream & Sharp
 }
 
 export declare type SharpOption<T = string> = T

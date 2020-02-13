@@ -6,7 +6,7 @@ export default transformer
 function transformer(
   options: SharpOptions,
   size: ResizeOption
-): sharp.SharpInstance {
+): sharp.Sharp {
   let imageStream = sharp()
   for (const [key, value] of Object.entries(options)) {
     if (value) {
