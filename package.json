@@ -94,6 +94,6 @@
   "peerDependencies": {
     "aws-sdk": "^2.445.0",
     "rxjs": "^6.5.1",
-    "sharp": ">= 0.170 <= 0.20.8"
+    "sharp": "^0.24.0"
   }
 }
