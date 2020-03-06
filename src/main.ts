@@ -12,7 +12,7 @@ import defaultKey from './get-filename'
 import { S3StorageOptions, SharpOptions } from './types'
 
 export type EStream = {
-  stream: NodeJS.ReadableStream & sharp.SharpInstance
+  stream: NodeJS.ReadableStream & sharp.Sharp
 }
 export type EFile = Express.Multer.File &
   EStream &
