@@ -151,8 +151,7 @@ const storage5 = multerSharp({
   normalise: true,
   toFormat: 'jpeg',
   withMetadata: {
-    orientation: 4,
-    // chromaSubsampling: '4:2:0'
+    orientation: 4
   },
   convolve: {
     width: 3,
