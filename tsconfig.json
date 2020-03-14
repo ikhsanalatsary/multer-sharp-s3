@@ -22,7 +22,8 @@
   },
   "compileOnSave": true,
   "exclude": [
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "examples/*"
   ],
   "include": [
     "src/*.ts",

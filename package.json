@@ -1,6 +1,6 @@
 {
   "name": "multer-sharp-s3",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A plugin multer to transform image and upload to AWS S3",
   "main": "index.js",
   "scripts": {
