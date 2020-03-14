@@ -58,7 +58,6 @@ const storage = multerSharp({
       kernel: sharp.kernel.lanczos2,
     },
   },
-  max: true,
 })
 const upload = multer({ storage })
 const storage2 = multerSharp({
@@ -97,10 +96,6 @@ const storage4 = multerSharp({
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
   ACL: config.uploads.aws.ACL,
   resize: { width: 200 },
-  crop: 16, // crop strategy
-  background: { r: 0, g: 0, b: 100, alpha: 0 },
-  withoutEnlargement: true,
-  ignoreAspectRatio: true,
   trim: 50,
   flatten: true,
   extend: { top: 10, bottom: 20, left: 10, right: 10 },
@@ -129,13 +124,6 @@ const storage5 = multerSharp({
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
   ACL: config.uploads.aws.ACL,
   resize: { width: 400, height: 400 },
-  crop: 'north',
-  background: { r: 0, g: 0, b: 0, alpha: 0 },
-  embed: true,
-  max: true,
-  min: true,
-  withoutEnlargement: true,
-  ignoreAspectRatio: true,
   extract: { left: 0, top: 2, width: 50, height: 100 },
   trim: 50,
   flatten: true,
@@ -173,7 +161,6 @@ const storage6 = multerSharp({
     width: 400,
     height: 400,
   },
-  max: true,
   extract: { left: 0, top: 2, width: 400, height: 400 },
 })
 const upload6 = multer({ storage: storage6 });
@@ -409,6 +396,8 @@ describe('Upload test', () => {
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err) => {
         const file = lastReq.file
+        // console.log('filee ', file);
+        expect(file).toBeDefined()
         expect(file).toHaveProperty('Location')
         expect(file).toHaveProperty('fieldname');
         expect(file).toHaveProperty('encoding');
