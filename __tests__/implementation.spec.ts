@@ -7,13 +7,14 @@ import * as supertest from 'supertest'
 import * as multer from 'multer'
 import * as aws from 'aws-sdk'
 import * as crypto from 'crypto'
+import * as sharp from 'sharp'
 
 import multerSharp from '../src/main'
 const config = {
   uploads: {
     aws: {
       Bucket: process.env.AWS_BUCKET,
-      ACL: 'public-read',
+      ACL: 'private',
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       region: process.env.AWS_REGION,
@@ -54,11 +55,9 @@ const storage = multerSharp({
     width: 400,
     height: 400,
     options: {
-      kernel: 'lanczos2',
-      interpolator: 'nohalo',
+      kernel: sharp.kernel.lanczos2,
     },
   },
-  max: true,
 })
 const upload = multer({ storage })
 const storage2 = multerSharp({
@@ -97,10 +96,6 @@ const storage4 = multerSharp({
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
   ACL: config.uploads.aws.ACL,
   resize: { width: 200 },
-  crop: 16, // crop strategy
-  background: { r: 0, g: 0, b: 100, alpha: 0 },
-  withoutEnlargement: true,
-  ignoreAspectRatio: true,
   trim: 50,
   flatten: true,
   extend: { top: 10, bottom: 20, left: 10, right: 10 },
@@ -129,13 +124,6 @@ const storage5 = multerSharp({
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
   ACL: config.uploads.aws.ACL,
   resize: { width: 400, height: 400 },
-  crop: 'north',
-  background: { r: 0, g: 0, b: 0, alpha: 0 },
-  embed: true,
-  max: true,
-  min: true,
-  withoutEnlargement: true,
-  ignoreAspectRatio: true,
   extract: { left: 0, top: 2, width: 50, height: 100 },
   trim: 50,
   flatten: true,
@@ -152,6 +140,7 @@ const storage5 = multerSharp({
   toFormat: 'jpeg',
   withMetadata: {
     orientation: 4,
+    chromaSubsampling: '4:4:4',
   },
   convolve: {
     width: 3,
@@ -172,7 +161,6 @@ const storage6 = multerSharp({
     width: 400,
     height: 400,
   },
-  max: true,
   extract: { left: 0, top: 2, width: 400, height: 400 },
 })
 const upload6 = multer({ storage: storage6 });
@@ -181,7 +169,7 @@ const storage8 = multerSharp({
   s3,
   Bucket: config.uploads.aws.Bucket,
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
-  // ACL: config.uploads.aws.ACL,
+  ACL: config.uploads.aws.ACL,
   multiple: true,
   resize: [
     // { suffix: 'xlg', width: 1200, height: 1200 },
@@ -249,14 +237,14 @@ app.post('/upload', (req, res, next) => {
 
 // express setup
 app.post('/uploadwitherrorkey', (req, res, next) => {
-   upload2.single('myPic')(req, res, (errorFile) => {
+  upload2.single('myPic')(req, res, (errorFile) => {
     lastReq = req
     lastRes = res
     // console.log(errorFile.stack);
     res.status(400).json({ message: errorFile.message })
 
     next()
-   })
+  })
 });
 
 // express setup
@@ -278,10 +266,10 @@ app.post('/uploadwithsharpsetting', upload4.single('myPic'), (req, res, next) =>
 // // express setup
 app.post('/uploadanddelete', (req, res, next) => {
   upload5.single('myPic')(req, res, (err) => {
-    if (err) {next(err)}
+    if (err) { next(err) }
     storage5._removeFile(req, req.file, (err) => {
       // eslint-disable-line no-underscore-dangle
-      if (err) {next(err)}
+      if (err) { next(err) }
       res.sendStatus(200)
       next()
     })
@@ -330,15 +318,22 @@ app.post('/uploadfilewithdefaultkey', upload11.single('myFile'), (req, res, next
 // express setup
 app.post(
   '/uploadwithmultiplesize',
-  upload8.single('myPic'),
   (req, res, next) => {
-    lastReq = req
-    lastRes = res
-
-    if (lastReq && lastReq.file) {
+    upload8.single('myPic')(req, res, (err) => {
+      lastReq = req
+      lastRes = res
+      if (err) { throw err };
       res.sendStatus(200)
-    }
-    next()
+      next()
+    })
+    // lastReq = req
+    // lastRes = res
+    // console.log('req ', req.file)
+
+    // if (lastReq && lastReq.file) {
+    //   res.sendStatus(200)
+    // }
+    // next()
   }
 )
 
@@ -396,7 +391,7 @@ describe('S3Storage', () => {
 })
 
 describe('Upload test', () => {
-  //   this.timeout(15000);
+  jest.setTimeout(15000);
   it('initial server', (done) => {
     supertest(app)
       .get('/book')
@@ -408,6 +403,8 @@ describe('Upload test', () => {
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err) => {
         const file = lastReq.file
+        // console.log('filee ', file);
+        expect(file).toBeDefined()
         expect(file).toHaveProperty('Location')
         expect(file).toHaveProperty('fieldname');
         expect(file).toHaveProperty('encoding');
@@ -417,6 +414,50 @@ describe('Upload test', () => {
         done()
       })
     // .expect(200, done);
+  })
+  it('return a req.file with multiple sizes', (done) => {
+    // jest.setTimeout(done, 1000);
+    supertest(app)
+      .post('/uploadwithmultiplesize')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .end(() => {
+        const file = lastReq.file
+        expect(file).toHaveProperty('original')
+        expect(file).toHaveProperty('md')
+        expect(file).toHaveProperty('sm')
+        expect(file).toHaveProperty('xs')
+        expect(file).toHaveProperty('fieldname');
+        expect(file).toHaveProperty('encoding');
+        expect(file).toHaveProperty('mimetype');
+        expect(file).toHaveProperty('originalname');
+        expect(file.xs).toHaveProperty('Key')
+        expect(file.md).toHaveProperty('Key')
+        expect(file.sm).toHaveProperty('Key')
+        expect(file.original).toHaveProperty('Key')
+        expect(file.xs).toHaveProperty('Location')
+        expect(file.md).toHaveProperty('Location')
+        expect(file.sm).toHaveProperty('Location')
+        expect(file.original).toHaveProperty('Location')
+        done()
+      })
+  })
+
+  it('upload file without Key', (done) => {
+    supertest(app)
+      .post('/uploadfilewithdefaultkey')
+      .attach('myFile', '.travis.yml')
+      .end((err, res) => {
+        const { file } = lastReq
+        expect(file).toHaveProperty('Key')
+        expect(file).toHaveProperty('fieldname')
+        expect(file).toHaveProperty('encoding')
+        expect(file).toHaveProperty('mimetype')
+        expect(file).toHaveProperty('originalname')
+        expect(file.mimetype).toMatch('text/yaml')
+        expect(file.fieldname).toMatch('myFile')
+        expect(file.Location).toMatch('aws')
+        done()
+      })
   })
 
   // it('returns a req.file with the Google Cloud Storage filename and path', (done) => {
@@ -505,49 +546,6 @@ describe('Upload test', () => {
         expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('The request signature we calculated does not match the signature you provided. Check your key and signing method.')
         // expect(true).toBe(true)
-        done()
-      })
-  });
-  it('return a req.file with multiple sizes', (done) => {
-    // jest.setTimeout(done, 1000);
-    supertest(app)
-      .post('/uploadwithmultiplesize')
-      .attach('myPic', '__tests__/nodejs-512.png')
-      .end(() => {
-        const file = lastReq.file
-        expect(file).toHaveProperty('original')
-        expect(file).toHaveProperty('md')
-        expect(file).toHaveProperty('sm')
-        expect(file).toHaveProperty('xs')
-        expect(file).toHaveProperty('fieldname');
-        expect(file).toHaveProperty('encoding');
-        expect(file).toHaveProperty('mimetype');
-        expect(file).toHaveProperty('originalname');
-        expect(file.xs).toHaveProperty('Key')
-        expect(file.md).toHaveProperty('Key')
-        expect(file.sm).toHaveProperty('Key')
-        expect(file.original).toHaveProperty('Key')
-        expect(file.xs).toHaveProperty('Location')
-        expect(file.md).toHaveProperty('Location')
-        expect(file.sm).toHaveProperty('Location')
-        expect(file.original).toHaveProperty('Location')
-        done()
-      })
-  })
-  it('upload file without Key', (done) => {
-    supertest(app)
-      .post('/uploadfilewithdefaultkey')
-      .attach('myFile', '.travis.yml')
-      .end((err, res) => {
-        const { file } = lastReq
-        expect(file).toHaveProperty('Key')
-        expect(file).toHaveProperty('fieldname')
-        expect(file).toHaveProperty('encoding')
-        expect(file).toHaveProperty('mimetype')
-        expect(file).toHaveProperty('originalname')
-        expect(file.mimetype).toMatch('text/yaml')
-        expect(file.fieldname).toMatch('myFile')
-        expect(file.Location).toMatch('aws')
         done()
       })
   });

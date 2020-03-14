@@ -1,14 +1,12 @@
-sudo: false
 language: node_js
-matrix:
+jobs:
   include:
     - os: linux
-      dist: trusty
-      sudo: false
-      node_js: "10"
+      dist: bionic
+      node_js: "12"
 install:
-  - yarn
+  - npm install
 script:
-  - yarn test
+  - npm test
 after_success:
-  - yarn report-coverage
+  - npm run report-coverage

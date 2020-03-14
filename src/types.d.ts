@@ -1,6 +1,6 @@
 import {
   ResizeOptions,
-  RGBA,
+  // RGBA,
   Region,
   ExtendOptions,
   ThresholdOptions,
@@ -10,7 +10,8 @@ import {
   PngOptions,
   Metadata,
   Kernel,
-  SharpInstance,
+  Sharp,
+  OverlayOptions,
 } from 'sharp'
 import { S3 } from 'aws-sdk'
 
@@ -38,7 +39,7 @@ export declare interface Format {
 
 export declare interface ExtendSize {
   suffix: string
-  Body?: NodeJS.ReadableStream & SharpInstance
+  Body?: NodeJS.ReadableStream & Sharp
 }
 
 export declare type SharpOption<T = string> = T
@@ -49,13 +50,16 @@ export declare type ResizeOption =
 
 export declare interface SharpOptions {
   resize?: ResizeOption
-  crop?: SharpOption<string | number>
-  background?: SharpOption<RGBA | string>
-  embed?: boolean
-  max?: boolean
-  min?: boolean
-  withoutEnlargement?: boolean
-  ignoreAspectRatio?: boolean
+  // MARK: deprecated since sharp v0.22.0
+  // crop?: SharpOption<string | number>
+  // background?: SharpOption<RGBA | string>
+  // embed?: boolean
+  // max?: boolean
+  // min?: boolean
+  // withoutEnlargement?: boolean
+  // ignoreAspectRatio?: boolean
+  modulate?: { brightness?: number; saturation?: number; hue?: number }
+  composite?: OverlayOptions[]
   extract?: SharpOption<Region>
   trim?: SharpOption<number>
   flatten?: boolean

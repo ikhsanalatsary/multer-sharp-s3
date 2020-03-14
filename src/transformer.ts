@@ -6,7 +6,7 @@ export default transformer
 function transformer(
   options: SharpOptions,
   size: ResizeOption
-): sharp.SharpInstance {
+): sharp.Sharp {
   let imageStream = sharp()
   for (const [key, value] of Object.entries(options)) {
     if (value) {
@@ -26,12 +26,12 @@ const validateFormat = (value) => {
   }
   return value
 }
-const validateValue = (value) => {
-  if (typeof value === 'boolean') {
-    return null
-  }
-  return value
-}
+// const validateValue = (value) => {
+//   if (typeof value === 'boolean') {
+//     return null
+//   }
+//   return value
+// }
 const resolveImageStream = (key, value, size, imageStream) => {
   if (key === 'resize') {
     imageStream = imageStream.resize(size.width, size.height, size.options)
@@ -40,8 +40,8 @@ const resolveImageStream = (key, value, size, imageStream) => {
   } else if (key === 'toFormat') {
     imageStream = imageStream.toFormat(validateFormat(value), value.options)
   } else {
-    const valid = validateValue(value)
-    imageStream = imageStream[key](valid)
+    // const valid = validateValue(value)
+    imageStream = imageStream[key](value)
   }
   return imageStream
 }

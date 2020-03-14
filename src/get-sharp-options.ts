@@ -3,11 +3,8 @@ import { S3StorageOptions, SharpOptions } from './types'
 function getSharpOptions(options: S3StorageOptions): SharpOptions {
   return {
     resize: options.resize,
-    background: options.background,
-    crop: options.crop,
-    embed: options.embed,
-    max: options.max,
-    min: options.min,
+    composite: options.composite,
+    modulate: options.modulate,
     toFormat: options.toFormat,
     extract: options.extract,
     trim: options.trim,
@@ -28,9 +25,7 @@ function getSharpOptions(options: S3StorageOptions): SharpOptions {
     threshold: options.threshold,
     toColourspace: options.toColourspace,
     toColorspace: options.toColorspace,
-    ignoreAspectRatio: options.ignoreAspectRatio,
     withMetadata: options.withMetadata,
-    withoutEnlargement: options.withoutEnlargement,
   }
 }
 
