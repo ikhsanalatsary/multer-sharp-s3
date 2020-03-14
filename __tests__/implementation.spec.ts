@@ -322,7 +322,7 @@ app.post(
     upload8.single('myPic')(req, res, (err) => {
       lastReq = req
       lastRes = res
-      if (err) { throw err }
+      if (err) { throw err };
       res.sendStatus(200)
       next()
     })
@@ -415,6 +415,50 @@ describe('Upload test', () => {
       })
     // .expect(200, done);
   })
+  it('return a req.file with multiple sizes', (done) => {
+    // jest.setTimeout(done, 1000);
+    supertest(app)
+      .post('/uploadwithmultiplesize')
+      .attach('myPic', '__tests__/nodejs-512.png')
+      .end(() => {
+        const file = lastReq.file
+        expect(file).toHaveProperty('original')
+        expect(file).toHaveProperty('md')
+        expect(file).toHaveProperty('sm')
+        expect(file).toHaveProperty('xs')
+        expect(file).toHaveProperty('fieldname');
+        expect(file).toHaveProperty('encoding');
+        expect(file).toHaveProperty('mimetype');
+        expect(file).toHaveProperty('originalname');
+        expect(file.xs).toHaveProperty('Key')
+        expect(file.md).toHaveProperty('Key')
+        expect(file.sm).toHaveProperty('Key')
+        expect(file.original).toHaveProperty('Key')
+        expect(file.xs).toHaveProperty('Location')
+        expect(file.md).toHaveProperty('Location')
+        expect(file.sm).toHaveProperty('Location')
+        expect(file.original).toHaveProperty('Location')
+        done()
+      })
+  })
+
+  it('upload file without Key', (done) => {
+    supertest(app)
+      .post('/uploadfilewithdefaultkey')
+      .attach('myFile', '.travis.yml')
+      .end((err, res) => {
+        const { file } = lastReq
+        expect(file).toHaveProperty('Key')
+        expect(file).toHaveProperty('fieldname')
+        expect(file).toHaveProperty('encoding')
+        expect(file).toHaveProperty('mimetype')
+        expect(file).toHaveProperty('originalname')
+        expect(file.mimetype).toMatch('text/yaml')
+        expect(file.fieldname).toMatch('myFile')
+        expect(file.Location).toMatch('aws')
+        done()
+      })
+  })
 
   // it('returns a req.file with the Google Cloud Storage filename and path', (done) => {
   //   supertest(app)
@@ -502,49 +546,6 @@ describe('Upload test', () => {
         expect(res.status).toEqual(403)
         expect(res.body.message).toEqual('The request signature we calculated does not match the signature you provided. Check your key and signing method.')
         // expect(true).toBe(true)
-        done()
-      })
-  });
-  it('return a req.file with multiple sizes', (done) => {
-    // jest.setTimeout(done, 1000);
-    supertest(app)
-      .post('/uploadwithmultiplesize')
-      .attach('myPic', '__tests__/nodejs-512.png')
-      .end(() => {
-        const file = lastReq.file
-        expect(file).toHaveProperty('original')
-        expect(file).toHaveProperty('md')
-        expect(file).toHaveProperty('sm')
-        expect(file).toHaveProperty('xs')
-        expect(file).toHaveProperty('fieldname');
-        expect(file).toHaveProperty('encoding');
-        expect(file).toHaveProperty('mimetype');
-        expect(file).toHaveProperty('originalname');
-        expect(file.xs).toHaveProperty('Key')
-        expect(file.md).toHaveProperty('Key')
-        expect(file.sm).toHaveProperty('Key')
-        expect(file.original).toHaveProperty('Key')
-        expect(file.xs).toHaveProperty('Location')
-        expect(file.md).toHaveProperty('Location')
-        expect(file.sm).toHaveProperty('Location')
-        expect(file.original).toHaveProperty('Location')
-        done()
-      })
-  })
-  it('upload file without Key', (done) => {
-    supertest(app)
-      .post('/uploadfilewithdefaultkey')
-      .attach('myFile', '.travis.yml')
-      .end((err, res) => {
-        const { file } = lastReq
-        expect(file).toHaveProperty('Key')
-        expect(file).toHaveProperty('fieldname')
-        expect(file).toHaveProperty('encoding')
-        expect(file).toHaveProperty('mimetype')
-        expect(file).toHaveProperty('originalname')
-        expect(file.mimetype).toMatch('text/yaml')
-        expect(file.fieldname).toMatch('myFile')
-        expect(file.Location).toMatch('aws')
         done()
       })
   });
