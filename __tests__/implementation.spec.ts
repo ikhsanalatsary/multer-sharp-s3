@@ -7,6 +7,7 @@ import * as supertest from 'supertest'
 import * as multer from 'multer'
 import * as aws from 'aws-sdk'
 import * as crypto from 'crypto'
+import * as sharp from 'sharp'
 
 import multerSharp from '../src/main'
 const config = {
@@ -54,8 +55,7 @@ const storage = multerSharp({
     width: 400,
     height: 400,
     options: {
-      kernel: 'lanczos2',
-      interpolator: 'nohalo',
+      kernel: sharp.kernel.lanczos2,
     },
   },
   max: true,
@@ -151,7 +151,8 @@ const storage5 = multerSharp({
   normalise: true,
   toFormat: 'jpeg',
   withMetadata: {
-    orientation: 4
+    orientation: 4,
+    chromaSubsampling: '4:4:4',
   },
   convolve: {
     width: 3,
@@ -249,14 +250,14 @@ app.post('/upload', (req, res, next) => {
 
 // express setup
 app.post('/uploadwitherrorkey', (req, res, next) => {
-   upload2.single('myPic')(req, res, (errorFile) => {
+  upload2.single('myPic')(req, res, (errorFile) => {
     lastReq = req
     lastRes = res
     // console.log(errorFile.stack);
     res.status(400).json({ message: errorFile.message })
 
     next()
-   })
+  })
 });
 
 // express setup
@@ -278,10 +279,10 @@ app.post('/uploadwithsharpsetting', upload4.single('myPic'), (req, res, next) =>
 // // express setup
 app.post('/uploadanddelete', (req, res, next) => {
   upload5.single('myPic')(req, res, (err) => {
-    if (err) {next(err)}
+    if (err) { next(err) }
     storage5._removeFile(req, req.file, (err) => {
       // eslint-disable-line no-underscore-dangle
-      if (err) {next(err)}
+      if (err) { next(err) }
       res.sendStatus(200)
       next()
     })
