@@ -169,7 +169,7 @@ const storage8 = multerSharp({
   s3,
   Bucket: config.uploads.aws.Bucket,
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
-  // ACL: config.uploads.aws.ACL,
+  ACL: config.uploads.aws.ACL,
   multiple: true,
   resize: [
     // { suffix: 'xlg', width: 1200, height: 1200 },
@@ -318,15 +318,22 @@ app.post('/uploadfilewithdefaultkey', upload11.single('myFile'), (req, res, next
 // express setup
 app.post(
   '/uploadwithmultiplesize',
-  upload8.single('myPic'),
   (req, res, next) => {
-    lastReq = req
-    lastRes = res
-
-    if (lastReq && lastReq.file) {
+    upload8.single('myPic')(req, res, (err) => {
+      lastReq = req
+      lastRes = res
+      if (err) { throw err }
       res.sendStatus(200)
-    }
-    next()
+      next()
+    })
+    // lastReq = req
+    // lastRes = res
+    // console.log('req ', req.file)
+
+    // if (lastReq && lastReq.file) {
+    //   res.sendStatus(200)
+    // }
+    // next()
   }
 )
 
@@ -384,7 +391,7 @@ describe('S3Storage', () => {
 })
 
 describe('Upload test', () => {
-  //   this.timeout(15000);
+  jest.setTimeout(15000);
   it('initial server', (done) => {
     supertest(app)
       .get('/book')
