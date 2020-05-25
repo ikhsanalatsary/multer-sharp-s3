@@ -56,11 +56,11 @@
     "@types/express": "^4.16.1",
     "@types/jest": "^24.0.12",
     "@types/mime-types": "^2.1.0",
-    "@types/multer": "^1.3.7",
-    "@types/sharp": "^0.24.0",
+    "@types/multer": "^1.4.3",
+    "@types/sharp": "^0.25.0",
     "@types/supertest": "^2.0.7",
     "aws-sdk": "^2.445.0",
-    "codecov": "^3.3.0",
+    "codecov": "^3.7.0",
     "express": "^4.16.4",
     "jest": "^24.0.12",
     "multer": "^1.4.1",
@@ -74,8 +74,7 @@
   "dependencies": {
     "mime-types": "2.1.24",
     "rxjs": "6.5.1",
-    "sharp": "^0.25.1",
-    "yarn.lock": "^0.0.1-security"
+    "sharp": "^0.25.1"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -94,6 +93,6 @@
   "peerDependencies": {
     "aws-sdk": "^2.445.0",
     "rxjs": "^6.5.1",
-    "sharp": "^0.24.0"
+    "sharp": "^0.25.1"
   }
 }
