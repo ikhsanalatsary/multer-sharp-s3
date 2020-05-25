@@ -84,7 +84,7 @@ export declare interface SharpOptions {
   toColorspace?: SharpOption
   toFormat?: SharpOption<string | Format>
   linear?: boolean | [MaybeA<number>, MaybeA<number>]
-  median?: boolean | [MaybeA<number>, MaybeA<number>]
+  median?: boolean | number
 }
 
 export declare interface CloudStorageOptions
