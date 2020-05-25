@@ -26,6 +26,8 @@ function getSharpOptions(options: S3StorageOptions): SharpOptions {
     toColourspace: options.toColourspace,
     toColorspace: options.toColorspace,
     withMetadata: options.withMetadata,
+    linear: options.linear,
+    median: options.median,
   }
 }
 

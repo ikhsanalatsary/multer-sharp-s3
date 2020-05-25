@@ -2,6 +2,12 @@ import * as sharp from 'sharp'
 import { ResizeOption, SharpOptions } from './types'
 
 export default transformer
+let dynamicParamMethods = new Map([
+  ['gamma', 'gamma'],
+  ['linear', 'linear'],
+  ['median', 'median'],
+  ['rotate', 'rotate'],
+])
 
 function transformer(
   options: SharpOptions,
@@ -26,22 +32,28 @@ const validateFormat = (value) => {
   }
   return value
 }
-// const validateValue = (value) => {
-//   if (typeof value === 'boolean') {
-//     return null
-//   }
-//   return value
-// }
+const validateValueForRelatedKey = (key, value) => {
+  if (dynamicParamMethods.has(key)) {
+    if (typeof value === 'boolean') {
+      if (value) {
+        return undefined
+      }
+    }
+  }
+  return value
+}
 const resolveImageStream = (key, value, size, imageStream) => {
   if (key === 'resize') {
     imageStream = imageStream.resize(size.width, size.height, size.options)
-  } else if (key === 'crop') {
-    imageStream = imageStream[key](value)
   } else if (key === 'toFormat') {
     imageStream = imageStream.toFormat(validateFormat(value), value.options)
   } else {
-    // const valid = validateValue(value)
-    imageStream = imageStream[key](value)
+    const validValue = validateValueForRelatedKey(key, value)
+    if (Array.isArray(validValue)) {
+      imageStream = imageStream[key](...validValue)
+    } else {
+      imageStream = imageStream[key](validValue)
+    }
   }
   return imageStream
 }

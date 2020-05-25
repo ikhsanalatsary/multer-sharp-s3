@@ -48,6 +48,8 @@ export declare type ResizeOption =
   | SharpOption<Size>
   | Array<SharpOption<Size & ExtendSize>>
 
+export declare type MaybeA<T> = T | undefined | null
+
 export declare interface SharpOptions {
   resize?: ResizeOption
   // MARK: deprecated since sharp v0.22.0
@@ -81,6 +83,8 @@ export declare interface SharpOptions {
   toColourspace?: SharpOption
   toColorspace?: SharpOption
   toFormat?: SharpOption<string | Format>
+  linear?: boolean | [MaybeA<number>, MaybeA<number>]
+  median?: boolean | [MaybeA<number>, MaybeA<number>]
 }
 
 export declare interface CloudStorageOptions
