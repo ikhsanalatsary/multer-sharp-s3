@@ -4,9 +4,9 @@ import { ResizeOption, SharpOptions } from './types'
 export default transformer
 let dynamicParamMethods = new Map([
   ['gamma', 'gamma'],
-  ['linear', 'linear'],
   ['median', 'median'],
   ['rotate', 'rotate'],
+  ['trim', 'trim'],
 ])
 
 function transformer(
@@ -32,7 +32,7 @@ const validateFormat = (value) => {
   }
   return value
 }
-const validateValueForRelatedKey = (key, value) => {
+const validateValueForRelatedKey = (key: string, value: any) => {
   if (dynamicParamMethods.has(key)) {
     if (typeof value === 'boolean') {
       if (value) {
@@ -47,13 +47,15 @@ const resolveImageStream = (key, value, size, imageStream) => {
     imageStream = imageStream.resize(size.width, size.height, size.options)
   } else if (key === 'toFormat') {
     imageStream = imageStream.toFormat(validateFormat(value), value.options)
+  } else if (key === 'linear') {
+    if (typeof value === 'boolean') {
+      imageStream = imageStream.linear()
+    } else {
+      imageStream = imageStream.linear(...value)
+    }
   } else {
     const validValue = validateValueForRelatedKey(key, value)
-    if (Array.isArray(validValue)) {
-      imageStream = imageStream[key](...validValue)
-    } else {
-      imageStream = imageStream[key](validValue)
-    }
+    imageStream = imageStream[key](validValue)
   }
   return imageStream
 }
