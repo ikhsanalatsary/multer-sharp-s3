@@ -1,5 +1,5 @@
 import * as sharp from 'sharp'
-import { ResizeOption, SharpOptions } from './types'
+import { Size, SharpOptions } from './types'
 
 export default transformer
 let dynamicParamMethods = new Map([
@@ -11,7 +11,7 @@ let dynamicParamMethods = new Map([
 
 function transformer(
   options: SharpOptions,
-  size: ResizeOption
+  size: Size
 ): sharp.Sharp {
   let imageStream = sharp()
   for (const [key, value] of Object.entries(options)) {
@@ -22,11 +22,11 @@ function transformer(
   return imageStream
 }
 
-const objectHasOwnProperty = (source, prop) =>
+const objectHasOwnProperty = (source: Object, prop: string) =>
   Object.prototype.hasOwnProperty.call(source, prop)
-const hasProp = (value) =>
+const hasProp = (value: Object) =>
   typeof value === 'object' && objectHasOwnProperty(value, 'type')
-const validateFormat = (value) => {
+const validateFormat = (value: any) => {
   if (hasProp(value)) {
     return value.type
   }
@@ -42,7 +42,7 @@ const validateValueForRelatedKey = (key: string, value: any) => {
   }
   return value
 }
-const resolveImageStream = (key, value, size, imageStream) => {
+const resolveImageStream = (key: string, value: any, size: Size, imageStream: sharp.Sharp) => {
   if (key === 'resize') {
     imageStream = imageStream.resize(size.width, size.height, size.options)
   } else if (key === 'toFormat') {
@@ -53,6 +53,8 @@ const resolveImageStream = (key, value, size, imageStream) => {
     } else {
       imageStream = imageStream.linear(...value)
     }
+  } else if (key === 'joinChannel') {
+    imageStream = imageStream.joinChannel(value.images, value.options)
   } else {
     const validValue = validateValueForRelatedKey(key, value)
     imageStream = imageStream[key](validValue)

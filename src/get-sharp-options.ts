@@ -28,6 +28,13 @@ function getSharpOptions(options: S3StorageOptions): SharpOptions {
     withMetadata: options.withMetadata,
     linear: options.linear,
     median: options.median,
+    tint: options.tint,
+    removeAlpha: options.removeAlpha,
+    bandbool: options.bandbool,
+    boolean: options.boolean,
+    joinChannel: options.joinChannel,
+    extractChannel: options.extractChannel,
+    ensureAlpha: options.ensureAlpha,
   }
 }
 

@@ -75,7 +75,7 @@ const storage2 = multerSharp({
     height: 400,
   },
 })
-const upload2 = multer({ storage: storage2 });
+const upload2 = multer({ storage: storage2 })
 
 const storage3 = multerSharp({
   s3,
@@ -96,18 +96,37 @@ const storage4 = multerSharp({
   Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
   ACL: config.uploads.aws.ACL,
   resize: { width: 200 },
-  trim: 50,
+  trim: true,
   flatten: true,
   extend: { top: 10, bottom: 20, left: 10, right: 10 },
   negate: true,
-  rotate: 90,
+  rotate: true,
   flip: true,
   flop: true,
   blur: true,
   sharpen: true,
-  gamma: 2.5,
+  gamma: false,
   greyscale: true,
   normalize: true,
+  linear: [1.0, 1.0],
+  median: true,
+  withMetadata: true,
+  composite: [
+    {
+      input: {
+        create: {
+          width: 100,
+          height: 100,
+          channels: 3,
+          background: 'rgb(255, 255, 255)',
+        },
+      },
+      premultiplied: true,
+    },
+  ],
+  removeAlpha: true,
+  bandbool: 'and',
+  tint: 'rgb(255, 255, 255)',
   toFormat: {
     type: 'jpeg',
     options: {
@@ -116,7 +135,7 @@ const storage4 = multerSharp({
     },
   },
 })
-const upload4 = multer({ storage: storage4 });
+const upload4 = multer({ storage: storage4 })
 
 const storage5 = multerSharp({
   s3,
@@ -140,7 +159,6 @@ const storage5 = multerSharp({
   toFormat: 'jpeg',
   withMetadata: {
     orientation: 4,
-    chromaSubsampling: '4:4:4',
   },
   convolve: {
     width: 3,
@@ -148,9 +166,10 @@ const storage5 = multerSharp({
     kernel: [-1, 0, 1, -2, 0, 2, -1, 0, 1],
   },
   threshold: 129,
+  extractChannel: 'green',
   toColorspace: 'b-w',
 })
-const upload5 = multer({ storage: storage5 });
+const upload5 = multer({ storage: storage5 })
 
 const storage6 = multerSharp({
   s3,
@@ -163,7 +182,7 @@ const storage6 = multerSharp({
   },
   extract: { left: 0, top: 2, width: 400, height: 400 },
 })
-const upload6 = multer({ storage: storage6 });
+const upload6 = multer({ storage: storage6 })
 
 const storage8 = multerSharp({
   s3,
@@ -217,6 +236,9 @@ const storage11 = multerSharp({
   Bucket: config.uploads.aws.Bucket,
   // Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myFile`,
   ACL: config.uploads.aws.ACL,
+  joinChannel: {
+    images: 'ss'
+  },
 })
 const upload11 = multer({ storage: storage11 })
 
@@ -245,7 +267,7 @@ app.post('/uploadwitherrorkey', (req, res, next) => {
 
     next()
   })
-});
+})
 
 // express setup
 app.post('/uploadfile', upload3.single('myFile'), (req, res, next) => {
@@ -256,34 +278,42 @@ app.post('/uploadfile', upload3.single('myFile'), (req, res, next) => {
 })
 
 // express setup
-app.post('/uploadwithsharpsetting', upload4.single('myPic'), (req, res, next) => {
-  lastReq = req;
-  lastRes = res;
-  res.sendStatus(200);
-  next();
-});
+app.post(
+  '/uploadwithsharpsetting',
+  upload4.single('myPic'),
+  (req, res, next) => {
+    lastReq = req
+    lastRes = res
+    res.sendStatus(200)
+    next()
+  }
+)
 
 // // express setup
 app.post('/uploadanddelete', (req, res, next) => {
   upload5.single('myPic')(req, res, (err) => {
-    if (err) { next(err) }
+    if (err) {
+      next(err)
+    }
     storage5._removeFile(req, req.file, (err) => {
       // eslint-disable-line no-underscore-dangle
-      if (err) { next(err) }
+      if (err) {
+        next(err)
+      }
       res.sendStatus(200)
       next()
     })
   })
-});
+})
 
 app.post('/uploadwithtransformerror', (req, res) => {
-  const uploadAndError = upload6.single('myPic');
+  const uploadAndError = upload6.single('myPic')
   uploadAndError(req, res, (uploadError) => {
     if (uploadError) {
-      res.status(400).json({ message: 'Something went wrong when resize' });
+      res.status(400).json({ message: 'Something went wrong when resize' })
     }
-  });
-});
+  })
+})
 
 app.post('/uploadwitherror', (req, res) => {
   aws.config.update({
@@ -297,45 +327,46 @@ app.post('/uploadwitherror', (req, res) => {
     Bucket: config.uploads.aws.Bucket,
     Key: `${config.uploads.aws.Bucket}/test/${Date.now()}-myPic`,
   })
-  const upload7 = multer({ storage: storage7 });
-  const uploadAndError = upload7.single('myPic');
+  const upload7 = multer({ storage: storage7 })
+  const uploadAndError = upload7.single('myPic')
   uploadAndError(req, res, (uploadError) => {
     if (uploadError) {
-      res
-        .status(uploadError.statusCode)
-        .json({ message: uploadError.message })
+      res.status(uploadError.statusCode).json({ message: uploadError.message })
     }
-  });
-});
+  })
+})
 
-app.post('/uploadfilewithdefaultkey', upload11.single('myFile'), (req, res, next) => {
-  lastReq = req;
-  lastRes = res;
-  res.sendStatus(200);
-  next();
-});
-
-// express setup
 app.post(
-  '/uploadwithmultiplesize',
+  '/uploadfilewithdefaultkey',
+  upload11.single('myFile'),
   (req, res, next) => {
-    upload8.single('myPic')(req, res, (err) => {
-      lastReq = req
-      lastRes = res
-      if (err) { throw err };
-      res.sendStatus(200)
-      next()
-    })
-    // lastReq = req
-    // lastRes = res
-    // console.log('req ', req.file)
-
-    // if (lastReq && lastReq.file) {
-    //   res.sendStatus(200)
-    // }
-    // next()
+    lastReq = req
+    lastRes = res
+    res.sendStatus(200)
+    next()
   }
 )
+
+// express setup
+app.post('/uploadwithmultiplesize', (req, res, next) => {
+  upload8.single('myPic')(req, res, (err) => {
+    lastReq = req
+    lastRes = res
+    if (err) {
+      throw err
+    }
+    res.sendStatus(200)
+    next()
+  })
+  // lastReq = req
+  // lastRes = res
+  // console.log('req ', req.file)
+
+  // if (lastReq && lastReq.file) {
+  //   res.sendStatus(200)
+  // }
+  // next()
+})
 
 // app.post('/uploadwithmultiplesizetransformerror', (req, res) => {
 //   const uploadAndError = upload9.single('myPic');
@@ -391,7 +422,7 @@ describe('S3Storage', () => {
 })
 
 describe('Upload test', () => {
-  jest.setTimeout(15000);
+  jest.setTimeout(15000)
   it('initial server', (done) => {
     supertest(app)
       .get('/book')
@@ -406,11 +437,11 @@ describe('Upload test', () => {
         // console.log('filee ', file);
         expect(file).toBeDefined()
         expect(file).toHaveProperty('Location')
-        expect(file).toHaveProperty('fieldname');
-        expect(file).toHaveProperty('encoding');
-        expect(file).toHaveProperty('mimetype');
-        expect(file).toHaveProperty('originalname');
-        expect(file).toHaveProperty('Key');
+        expect(file).toHaveProperty('fieldname')
+        expect(file).toHaveProperty('encoding')
+        expect(file).toHaveProperty('mimetype')
+        expect(file).toHaveProperty('originalname')
+        expect(file).toHaveProperty('Key')
         done()
       })
     // .expect(200, done);
@@ -426,10 +457,10 @@ describe('Upload test', () => {
         expect(file).toHaveProperty('md')
         expect(file).toHaveProperty('sm')
         expect(file).toHaveProperty('xs')
-        expect(file).toHaveProperty('fieldname');
-        expect(file).toHaveProperty('encoding');
-        expect(file).toHaveProperty('mimetype');
-        expect(file).toHaveProperty('originalname');
+        expect(file).toHaveProperty('fieldname')
+        expect(file).toHaveProperty('encoding')
+        expect(file).toHaveProperty('mimetype')
+        expect(file).toHaveProperty('originalname')
         expect(file.xs).toHaveProperty('Key')
         expect(file.md).toHaveProperty('Key')
         expect(file.sm).toHaveProperty('Key')
@@ -504,7 +535,7 @@ describe('Upload test', () => {
         expect(res.body.message).toEqual('Something wrong')
         done()
       })
-  });
+  })
   it('return a req.file with mimetype image/jpeg', (done) => {
     supertest(app)
       .post('/uploadwithsharpsetting')
@@ -521,13 +552,13 @@ describe('Upload test', () => {
         expect(file.Location).toMatch('amazonaws')
         done()
       })
-  });
+  })
   it('upload and delete after', (done) => {
     supertest(app)
       .post('/uploadanddelete')
       .attach('myPic', '__tests__/nodejs-512.png')
       .expect(200, done)
-  });
+  })
   it('upload and return error, cause transform/resize error', (done) => {
     supertest(app)
       .post('/uploadwithtransformerror')
@@ -537,18 +568,20 @@ describe('Upload test', () => {
         expect(res.body.message).toEqual('Something went wrong when resize')
         done()
       })
-  });
+  })
   it('upload and return error, cause wrong configuration', (done) => {
     supertest(app)
       .post('/uploadwitherror')
       .attach('myPic', '__tests__/nodejs-512.png')
       .end((err, res) => {
         expect(res.status).toEqual(403)
-        expect(res.body.message).toEqual('The request signature we calculated does not match the signature you provided. Check your key and signing method.')
+        expect(res.body.message).toEqual(
+          'The request signature we calculated does not match the signature you provided. Check your key and signing method.'
+        )
         // expect(true).toBe(true)
         done()
       })
-  });
+  })
   // it('upload multisize and return error, cause transform/resize error', (done) => {
   //   supertest(app)
   //     .post('/uploadwithmultiplesizetransformerror')

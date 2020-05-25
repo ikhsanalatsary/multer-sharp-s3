@@ -15,6 +15,7 @@ import {
   Color,
   FlattenOptions,
   Raw,
+  SharpOptions as SharpOptionsCore
 } from 'sharp'
 import { S3 } from 'aws-sdk'
 
@@ -34,6 +35,11 @@ export declare interface Bool {
   operand: string | Buffer
   operator: string
   options?: { raw: Raw }
+}
+
+export declare interface JoinChannel {
+  images: string | Buffer | ArrayLike<string | Buffer>
+  options?: SharpOptionsCore
 }
 
 export declare interface Modulate {
@@ -104,6 +110,9 @@ export declare interface SharpOptions {
   removeAlpha?: SharpOption<boolean>
   bandbool?: SharpOption
   boolean?: SharpOption<Bool>
+  joinChannel?: SharpOption<JoinChannel>
+  extractChannel?: SharpOption<number | string>
+  ensureAlpha?: SharpOption<boolean>
 }
 
 export declare interface CloudStorageOptions
