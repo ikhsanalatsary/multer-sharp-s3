@@ -166,7 +166,7 @@ const storage5 = multerSharp({
     kernel: [-1, 0, 1, -2, 0, 2, -1, 0, 1],
   },
   threshold: 129,
-  extractChannel: 'green',
+  // extractChannel: 'green',
   toColorspace: 'b-w',
 })
 const upload5 = multer({ storage: storage5 })
