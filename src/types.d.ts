@@ -58,7 +58,7 @@ export declare interface Format {
   options?: OutputOptions | JpegOptions | PngOptions
 }
 
-export declare interface ExtendSize {
+export declare interface ExtendSize extends Size {
   suffix: string
   Body?: NodeJS.ReadableStream & Sharp
 }
@@ -67,7 +67,7 @@ export declare type SharpOption<T = string> = T
 
 export declare type ResizeOption =
   | SharpOption<Size>
-  | Array<SharpOption<Size & ExtendSize>>
+  | Array<SharpOption<ExtendSize>>
 
 export declare type MaybeA<T> = T | undefined | null
 

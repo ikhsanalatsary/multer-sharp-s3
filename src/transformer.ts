@@ -1,5 +1,5 @@
 import * as sharp from 'sharp'
-import { Size, SharpOptions } from './types'
+import { ResizeOption, SharpOptions } from './types'
 
 export default transformer
 let dynamicParamMethods = new Map([
@@ -11,7 +11,7 @@ let dynamicParamMethods = new Map([
 
 function transformer(
   options: SharpOptions,
-  size: Size
+  size: ResizeOption
 ): sharp.Sharp {
   let imageStream = sharp()
   for (const [key, value] of Object.entries(options)) {
@@ -42,9 +42,11 @@ const validateValueForRelatedKey = (key: string, value: any) => {
   }
   return value
 }
-const resolveImageStream = (key: string, value: any, size: Size, imageStream: sharp.Sharp) => {
+const resolveImageStream = (key: string, value: any, size: ResizeOption, imageStream: sharp.Sharp) => {
   if (key === 'resize') {
-    imageStream = imageStream.resize(size.width, size.height, size.options)
+    if (!Array.isArray(size)) {
+      imageStream = imageStream.resize(size.width, size.height, size.options)
+    }
   } else if (key === 'toFormat') {
     imageStream = imageStream.toFormat(validateFormat(value), value.options)
   } else if (key === 'linear') {
