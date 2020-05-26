@@ -1,6 +1,6 @@
 {
   "name": "multer-sharp-s3",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A plugin multer to transform image and upload to AWS S3",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,12 @@
     "build": "tsc -w false",
     "postbuild": "node scripts/copy.js",
     "format": "prettier --config prettier.config.js \"**/*.{ts,tsx,js,jsx,md}\"",
-    "report-coverage": "cat ./coverage/lcov.info | ./node_modules/.bin/codecov"
+    "report-coverage": "cat ./coverage/lcov.info | ./node_modules/.bin/codecov",
+    "release": "npm run build && standard-version",
+    "postrelease": "npm run release:github && npm run release:npm",
+    "release:github": "git push --no-verify --follow-tags origin master",
+    "release:npm": "npm publish",
+    "dry": "npm run build && standard-version --dry-run"
   },
   "repository": {
     "type": "git",
@@ -66,6 +71,7 @@
     "multer": "^1.4.1",
     "prettier": "^1.17.0",
     "shx": "0.3.2",
+    "standard-version": "^8.0.0",
     "supertest": "^4.0.2",
     "ts-jest": "^24.0.2",
     "ts-lint": "^4.5.1",
