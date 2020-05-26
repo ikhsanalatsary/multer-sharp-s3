@@ -8,10 +8,14 @@ import {
   OutputOptions,
   JpegOptions,
   PngOptions,
-  Metadata,
+  WriteableMetadata,
   Kernel,
   Sharp,
   OverlayOptions,
+  Color,
+  FlattenOptions,
+  Raw,
+  SharpOptions as SharpOptionsCore
 } from 'sharp'
 import { S3 } from 'aws-sdk'
 
@@ -27,6 +31,23 @@ export declare interface Sharpen {
   jagged?: number
 }
 
+export declare interface Bool {
+  operand: string | Buffer
+  operator: string
+  options?: { raw: Raw }
+}
+
+export declare interface JoinChannel {
+  images: string | Buffer | ArrayLike<string | Buffer>
+  options?: SharpOptionsCore
+}
+
+export declare interface Modulate {
+  brightness?: number
+  saturation?: number
+  hue?: number
+}
+
 export declare interface Threshold {
   threshold?: number
   options?: ThresholdOptions
@@ -37,7 +58,7 @@ export declare interface Format {
   options?: OutputOptions | JpegOptions | PngOptions
 }
 
-export declare interface ExtendSize {
+export declare interface ExtendSize extends Size {
   suffix: string
   Body?: NodeJS.ReadableStream & Sharp
 }
@@ -46,7 +67,9 @@ export declare type SharpOption<T = string> = T
 
 export declare type ResizeOption =
   | SharpOption<Size>
-  | Array<SharpOption<Size & ExtendSize>>
+  | Array<SharpOption<ExtendSize>>
+
+export declare type MaybeA<T> = T | undefined | null
 
 export declare interface SharpOptions {
   resize?: ResizeOption
@@ -58,29 +81,38 @@ export declare interface SharpOptions {
   // min?: boolean
   // withoutEnlargement?: boolean
   // ignoreAspectRatio?: boolean
-  modulate?: { brightness?: number; saturation?: number; hue?: number }
-  composite?: OverlayOptions[]
+  modulate?: SharpOption<Modulate>
+  composite?: SharpOption<OverlayOptions[]>
   extract?: SharpOption<Region>
-  trim?: SharpOption<number>
-  flatten?: boolean
+  trim?: SharpOption<boolean | number>
+  flatten?: SharpOption<boolean | FlattenOptions>
   extend?: SharpOption<number | ExtendOptions>
-  negate?: boolean
+  negate?: SharpOption<boolean>
   rotate?: SharpOption<boolean | number>
-  flip?: boolean
-  flop?: boolean
+  flip?: SharpOption<boolean>
+  flop?: SharpOption<boolean>
   blur?: SharpOption<boolean | number>
   sharpen?: SharpOption<boolean | Sharpen>
   gamma?: SharpOption<boolean | number>
-  grayscale?: boolean
-  greyscale?: boolean
-  normalize?: boolean
-  normalise?: boolean
-  withMetadata?: SharpOption<Metadata>
+  grayscale?: SharpOption<boolean>
+  greyscale?: SharpOption<boolean>
+  normalize?: SharpOption<boolean>
+  normalise?: SharpOption<boolean>
+  withMetadata?: SharpOption<boolean | WriteableMetadata>
   convolve?: SharpOption<Kernel>
   threshold?: SharpOption<number | Threshold>
   toColourspace?: SharpOption
   toColorspace?: SharpOption
   toFormat?: SharpOption<string | Format>
+  linear?: SharpOption<boolean | [MaybeA<number>, MaybeA<number>]>
+  median?: SharpOption<boolean | number>
+  tint?: SharpOption<Color>
+  removeAlpha?: SharpOption<boolean>
+  bandbool?: SharpOption
+  boolean?: SharpOption<Bool>
+  joinChannel?: SharpOption<JoinChannel>
+  extractChannel?: SharpOption<number | string>
+  ensureAlpha?: SharpOption<boolean>
 }
 
 export declare interface CloudStorageOptions
