@@ -48,6 +48,9 @@ class S3Storage {
             Body: stream,
             Key: opts.Key,
         };
+        if (typeof opts._resize === 'function') {
+            this.opts.resize = opts._resize(req);
+        }
         if (typeof opts.Key === 'function') {
             opts.Key(req, file, (fileErr, Key) => {
                 if (fileErr) {
