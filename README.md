@@ -132,6 +132,33 @@ app.post('/uploadmultiplesize', upload.single('myPic'), (req, res, next) => {
     res.send('Successfully uploaded!');
 });
 
+/* 
+ *  If the directory property exists, 
+ *  the suffix property is ignored and 
+ *  inserted separated by Bucket's directory.
+ */
+const storage3 = s3Storage({
+  Key: (req, file, cb) => {
+    crypto.pseudoRandomBytes(16, (err, raw) => {
+      cb(err, err ? undefined : raw.toString('hex'))
+    })
+  },
+  s3,
+  Bucket: config.uploads.aws.Bucket,
+  multiple: true,
+  resize: [
+    { suffix: 'lg', directory: 'large', width: 800, height: 800 },  // insert BUCKET/large/filename
+    { suffix: 'md', directory: 'medium', width: 500, height: 500 }, // insert BUCKET/medium/filename
+    { suffix: 'sm', directory: 'small', width: 300, height: 300 },  // insert BUCKET/small/filename
+  ],
+});
+const upload3 = multer({ storage3 });
+
+app.post('/uploadmultiplesize', upload3.single('myPic'), (req, res, next) => {
+    console.log(req.file); // print output
+    res.send('Successfully uploaded!');
+});
+
 // also can upload any file (non image type)
 const storage = s3Storage({
   s3,
