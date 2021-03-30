@@ -159,6 +159,7 @@ export class S3Storage implements StorageEngine {
               ContentType,
               Key: `${keyDot.join('.')}-${size.suffix}.${params.Key.split('.')[keyDot.length]}`,
             }
+            
             const upload = opts.s3.upload(newParams)
             let currentSize = { [size.suffix]: 0 }
             upload.on('httpUploadProgress', function(ev) {
