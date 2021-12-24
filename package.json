@@ -79,8 +79,8 @@
   },
   "dependencies": {
     "mime-types": "2.1.24",
-    "rxjs": "6.5.1",
-    "sharp": "^0.25.1"
+    "rxjs": "^6.5.1",
+    "sharp": "^0.29.3"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -98,7 +98,6 @@
   },
   "peerDependencies": {
     "aws-sdk": "^2.445.0",
-    "rxjs": "^6.5.1",
-    "sharp": "^0.25.1"
+    "rxjs": "^6.5.1"
   }
 }
