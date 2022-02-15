@@ -59,7 +59,8 @@ export declare interface Format {
 }
 
 export declare interface ExtendSize extends Size {
-  suffix: string
+  suffix: string,
+  directory?: string,
   Body?: NodeJS.ReadableStream & Sharp
 }
 
@@ -72,6 +73,7 @@ export declare type ResizeOption =
 export declare type MaybeA<T> = T | undefined | null
 
 export declare interface SharpOptions {
+  _resize?: any
   resize?: ResizeOption
   // MARK: deprecated since sharp v0.22.0
   // crop?: SharpOption<string | number>
