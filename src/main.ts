@@ -151,13 +151,17 @@ export class S3Storage implements StorageEngine {
           mergeMap((size) => {
             const { Body, ContentType } = size
             const keyDot = params.Key.split('.')
-            keyDot.pop()
+            let key = `${params.Key}-${size.suffix}`
+            if (keyDot.length > 1) {
+              keyDot.pop()
+              key = `${keyDot.join('.')}-${size.suffix}.${params.Key.split('.')[keyDot.length]}`
+            }
 
             let newParams = {
               ...params,
               Body,
               ContentType,
-              Key: `${keyDot.join('.')}-${size.suffix}.${params.Key.split('.')[keyDot.length]}`,
+              Key: size.directory ? `${size.directory}/${key}` : key,
             }
             
             const upload = opts.s3.upload(newParams)
