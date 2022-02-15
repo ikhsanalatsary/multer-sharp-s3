@@ -12,11 +12,11 @@
     "postbuild": "node scripts/copy.js",
     "format": "prettier --config prettier.config.js \"**/*.{ts,tsx,js,jsx,md}\"",
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/.bin/codecov",
-    "release": "npm run build && git add dist/ && standard-version",
+    "release": "npm run build && git add dist/ && standard-version -a",
     "postrelease": "npm run release:github && npm run release:npm",
     "release:github": "git push --no-verify --follow-tags origin master",
     "release:npm": "npm publish",
-    "dry": "npm run build && standard-version --dry-run"
+    "dry": "npm run build && standard-version -a --dry-run"
   },
   "repository": {
     "type": "git",
