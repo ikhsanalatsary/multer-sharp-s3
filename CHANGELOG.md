@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.3](https://github.com/ikhsanalatsary/multer-sharp-s3/compare/v0.2.2...v0.2.3) (2022-02-15)
+
 ### [0.2.2](https://github.com/ikhsanalatsary/multer-sharp-s3/compare/v0.2.1...v0.2.2) (2022-02-15)
 
 

@@ -59,7 +59,8 @@ export declare interface Format {
 }
 
 export declare interface ExtendSize extends Size {
-  suffix: string
+  suffix: string,
+  directory?: string,
   Body?: NodeJS.ReadableStream & Sharp
 }
 
