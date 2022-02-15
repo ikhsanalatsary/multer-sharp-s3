@@ -72,6 +72,11 @@ export class S3Storage implements StorageEngine {
       Body: stream,
       Key: opts.Key,
     }
+
+    if (typeof opts._resize === 'function') {
+        this.opts.resize = opts._resize(req);
+    }
+
     if (typeof opts.Key === 'function') {
       opts.Key(req, file, (fileErr, Key) => {
         if (fileErr) {
@@ -145,13 +150,20 @@ export class S3Storage implements StorageEngine {
           }),
           mergeMap((size) => {
             const { Body, ContentType } = size
-            const key = size.directory ? `${size.directory}/${params.Key}` : `${params.Key}-${size.suffix}`;
+            const keyDot = params.Key.split('.')
+            let key = `${params.Key}-${size.suffix}`
+            if (keyDot.length > 1) {
+              keyDot.pop()
+              key = `${keyDot.join('.')}-${size.suffix}.${params.Key.split('.')[keyDot.length]}`
+            }
+
             let newParams = {
               ...params,
               Body,
               ContentType,
-              Key: key,
+              Key: size.directory ? `${size.directory}/${key}` : key,
             }
+            
             const upload = opts.s3.upload(newParams)
             let currentSize = { [size.suffix]: 0 }
             upload.on('httpUploadProgress', function(ev) {
