@@ -95,10 +95,5 @@
     "verbose": true,
     "notify": false,
     "bail": false
-  },
-  "peerDependencies": {
-    "aws-sdk": "^2.445.0",
-    "rxjs": "^6.5.1",
-    "sharp": "^0.25.1"
   }
 }
