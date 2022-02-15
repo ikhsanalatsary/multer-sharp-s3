@@ -105,9 +105,13 @@ class S3Storage {
             }), operators_1.mergeMap((size) => {
                 const { Body, ContentType } = size;
                 const keyDot = params.Key.split('.');
-                keyDot.pop();
+                let key = `${params.Key}-${size.suffix}`;
+                if (keyDot.length > 1) {
+                    keyDot.pop();
+                    key = `${keyDot.join('.')}-${size.suffix}.${params.Key.split('.')[keyDot.length]}`;
+                }
                 let newParams = Object.assign({}, params, { Body,
-                    ContentType, Key: `${keyDot.join('.')}-${size.suffix}.${params.Key.split('.')[keyDot.length]}` });
+                    ContentType, Key: size.directory ? `${size.directory}/${key}` : key });
                 const upload = opts.s3.upload(newParams);
                 let currentSize = { [size.suffix]: 0 };
                 upload.on('httpUploadProgress', function (ev) {
