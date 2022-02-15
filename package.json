@@ -70,7 +70,7 @@
     "jest": "^24.0.12",
     "multer": "^1.4.1",
     "prettier": "^1.17.0",
-    "shx": "0.3.2",
+    "shx": "0.3.4",
     "standard-version": "^8.0.0",
     "supertest": "^4.0.2",
     "ts-jest": "^24.0.2",
