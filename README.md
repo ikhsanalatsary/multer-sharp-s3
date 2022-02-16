@@ -13,7 +13,7 @@ This project is mostly an integration piece for existing code samples from Multe
 
 # Minimum Requirement:
 
-  Node v8+
+  Node v12.13.0, npm v6+
 
 # Installation
 
@@ -197,13 +197,13 @@ Below are special / custom options from this package
 | resize | no | `object` or `Array<object>` when multiple is true. **Note:** suffix must be specify when using resize as `Array` | size specification |
 
 #### Sharp options
-Please visit this **[sharp](http://sharp.pixelplumbing.com/en/v0.20.8/)** for detailed overview of specific option.
+Please visit this **[sharp](http://sharp.pixelplumbing.com/)** for detailed overview of specific option.
 
 multer sharp s3 embraces sharp options, as table below:
 
 | option | default | value | role |
 | ------ | ------- | ----- | ---- |
-| resize | `undefined` | `object` for output image, as follow: `{ width?: 300, height?: 200, options?: {...resizeOptions} }`. doc: [sharpResizeOptions](http://sharp.pixelplumbing.com/en/v0.20.8/api-resize/#resize)  | size specification |
+| resize | `undefined` | `object` for output image, as follow: `{ width?: 300, height?: 200, options?: {...resizeOptions} }`. doc: [sharpResizeOptions](https://sharp.pixelplumbing.com/api-resize#resize)  | size specification |
 | crop | `undefined`  | | crop image |
 | background | `undefined` | | set the background for the embed, flatten and extend operations. |
 | embed | `undefined` | | embed on canvas |
@@ -228,7 +228,10 @@ multer sharp s3 embraces sharp options, as table below:
 | convolve | `undefined` | | Convolve the image with the specified kernel.
 | threshold | `undefined` | | Any pixel value greather than or equal to the threshold value will be set to 255, otherwise it will be set to 0
 | toColourspace *or* toColorspace | `undefined` | | Set the output colourspace. By default output image will be web-friendly sRGB, with additional channels interpreted as alpha channels.
-| toFormat | `undefined` | `'jpeg'`, `'png'`, `'magick'`, `'webp'`, `'tiff'`, `'openslide'`, `'dz'`, `'ppm'`, `'fits'`, `'gif'`, `'svg'`, `'pdf'`, `'v'`, `'raw'` or `object`. if `object` specify as follow: `{ type: 'png', options: { ...toFormatOptions } }` doc: [sharpToFormat](http://sharp.pixelplumbing.com/en/v0.20.8/api-output/#toformat) | type of output file to produce.|
+| toFormat | `undefined` | `'jpeg'`, `'png'`, `'magick'`, `'webp'`, `'tiff'`, `'openslide'`, `'dz'`, `'ppm'`, `'fits'`, `'gif'`, `'svg'`, `'pdf'`, `'v'`, `'raw'` or `object`. if `object` specify as follow: `{ type: 'png', options: { ...toFormatOptions } }` doc: [sharpToFormat](https://sharp.pixelplumbing.com/api-output#toformat) | type of output file to produce.|
+
+
+**NOTE** Some of the contents in the above table maybe is not be updated, you can check more [here](https://github.com/ikhsanalatsary/multer-sharp-s3/blob/c40c1d2ed9ace33df51f1ff079d1fb894c521db3/src/get-sharp-options.ts#L3)
 ***
 
 ## Why
