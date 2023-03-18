@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/dm/multer-sharp-s3.svg)](http://npm.im/multer-sharp-s3)
 [![Greenkeeper badge](https://badges.greenkeeper.io/ikhsanalatsary/multer-sharp-s3.svg)](https://greenkeeper.io/)
 
+[![DigitalOcean Referral Badge](https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg)](https://www.digitalocean.com/?refcode=dec9802955b6&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge)
+
 ***
 
 Multer Sharp S3 is streaming multer storage engine permit to transform / resize the image and upload to AWS S3.
