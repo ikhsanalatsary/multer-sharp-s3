@@ -34,13 +34,12 @@ class S3Storage {
         }
     }
     _handleFile(req, file, cb) {
-        const { opts, sharpOpts } = this;
+        const { opts } = this;
         const { mimetype, stream } = file;
         const params = {
             Bucket: opts.Bucket,
             ACL: opts.ACL,
             CacheControl: opts.CacheControl,
-            ContentType: opts.ContentType,
             Metadata: opts.Metadata,
             StorageClass: opts.StorageClass,
             ServerSideEncryption: opts.ServerSideEncryption,
@@ -81,7 +80,7 @@ class S3Storage {
     _uploadProcess(params, file, cb) {
         const { opts, sharpOpts } = this;
         let { stream, mimetype } = file;
-        const { ACL, ContentDisposition, ContentType: optsContentType, StorageClass, ServerSideEncryption, Metadata, } = opts;
+        const { ACL, ContentDisposition, StorageClass, ServerSideEncryption, Metadata, } = opts;
         if (opts.multiple && Array.isArray(opts.resize) && opts.resize.length > 0) {
             const sizes = rxjs_1.from(opts.resize);
             sizes
@@ -100,7 +99,7 @@ class S3Storage {
                     resolveWithObject: true,
                 });
                 return rxjs_1.from(getMetaFromSharp.then((result) => {
-                    return Object.assign({}, size, result.info, { ContentType: result.info.format, currentSize: result.info.size });
+                    return Object.assign({}, size, result.info, { ContentType: mime_types_1.contentType(result.info.format) || `image/${result.info.format}`, currentSize: result.info.size });
                 }));
             }), operators_1.mergeMap((size) => {
                 const { Body, ContentType } = size;
@@ -119,12 +118,11 @@ class S3Storage {
                         currentSize[size.suffix] = ev.total;
                     }
                 });
-                const upload$ = rxjs_1.from(upload.promise().then((result) => {
+                return rxjs_1.from(upload.promise().then((result) => {
                     // tslint:disable-next-line
                     const { Body } = size, rest = __rest(size, ["Body"]);
                     return Object.assign({}, result, rest, { currentSize: size.currentSize || currentSize[size.suffix] });
                 }));
-                return upload$;
             }), operators_1.toArray())
                 .subscribe((res) => {
                 const mapArrayToObject = res.reduce((acc, curr) => {
@@ -134,8 +132,7 @@ class S3Storage {
                         ContentDisposition,
                         StorageClass,
                         ServerSideEncryption,
-                        Metadata }, rest, { size: currentSize, ContentType: optsContentType || ContentType });
-                    mimetype = mime_types_1.lookup(ContentType) || `image/${ContentType}`;
+                        Metadata }, rest, { size: currentSize, ContentType: mime_types_1.contentType(format) || `image/${format}`, mimeType: mime_types_1.lookup(format) || `image/${format}` });
                     return acc;
                 }, {});
                 mapArrayToObject.mimetype = mimetype;
@@ -151,8 +148,8 @@ class S3Storage {
                 resolveWithObject: true,
             }));
             meta$
-                .pipe(operators_1.map((metadata) => {
-                newParams.ContentType = opts.ContentType || metadata.info.format;
+                .pipe(operators_1.tap((metadata) => {
+                newParams.ContentType = mime_types_1.contentType(metadata.info.format) || `image/${metadata.info.format}`;
                 return metadata;
             }), operators_1.mergeMap((metadata) => {
                 const upload = opts.s3.upload(newParams);
@@ -161,10 +158,9 @@ class S3Storage {
                         currentSize = ev.total;
                     }
                 });
-                const upload$ = rxjs_1.from(upload.promise().then((res) => {
+                return rxjs_1.from(upload.promise().then((res) => {
                     return Object.assign({}, res, metadata.info);
                 }));
-                return upload$;
             }))
                 .subscribe((result) => {
                 // tslint:disable-next-line
@@ -173,7 +169,7 @@ class S3Storage {
                     ContentDisposition,
                     StorageClass,
                     ServerSideEncryption,
-                    Metadata }, rest, { size: currentSize || size, ContentType: opts.ContentType || format, mimetype: mime_types_1.lookup(result.format) || `image/${result.format}` });
+                    Metadata }, rest, { size: currentSize || size, ContentType: mime_types_1.contentType(result.format) || `image/${result.format}`, mimetype: mime_types_1.lookup(result.format) || `image/${result.format}` });
                 cb(null, JSON.parse(JSON.stringify(endRes)));
             }, cb);
         }
@@ -190,7 +186,7 @@ class S3Storage {
             }
         });
         upload.promise().then((result) => {
-            const endRes = Object.assign({ size: currentSize, ACL: opts.ACL, ContentType: opts.ContentType || mimetype, ContentDisposition: opts.ContentDisposition, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, Metadata: opts.Metadata }, result);
+            const endRes = Object.assign({ size: currentSize, ACL: opts.ACL, ContentType: mime_types_1.contentType(mimetype) || mimetype, ContentDisposition: opts.ContentDisposition, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, Metadata: opts.Metadata }, result);
             cb(null, JSON.parse(JSON.stringify(endRes)));
         }, cb);
     }
