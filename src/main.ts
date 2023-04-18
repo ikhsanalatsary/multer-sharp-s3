@@ -190,7 +190,8 @@ export class S3Storage implements StorageEngine {
           const mapArrayToObject: { [k: string]: any } = res.reduce(
             (acc, curr) => {
               // tslint:disable-next-line
-              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr
+              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr;
+              const tmpContentType = lookup(result.format) || `image/${result.format}`;
               acc[curr.suffix] = {
                 ACL,
                 ContentDisposition,
@@ -199,9 +200,9 @@ export class S3Storage implements StorageEngine {
                 Metadata,
                 ...rest,
                 size: currentSize,
-                ContentType: optsContentType || ContentType
+                ContentType: tmpContentType,
               }
-              mimetype = lookup(ContentType) || `image/${ContentType}`
+              mimetype = tmpContentType;
               return acc
             }, {})
 
@@ -242,6 +243,7 @@ export class S3Storage implements StorageEngine {
         .subscribe((result) => {
           // tslint:disable-next-line
           const { size, format, channels, ...rest } = result
+          const tmpContentType = lookup(result.format) || `image/${result.format}`;
           const endRes = {
             ACL,
             ContentDisposition,
@@ -250,8 +252,8 @@ export class S3Storage implements StorageEngine {
             Metadata,
             ...rest,
             size: currentSize || size,
-            ContentType: opts.ContentType || format,
-            mimetype: lookup(result.format) || `image/${result.format}`
+            ContentType: tmpContentType,
+            mimetype: tmpContentType,
           }
           cb(null, JSON.parse(JSON.stringify(endRes)))
         }, cb)
