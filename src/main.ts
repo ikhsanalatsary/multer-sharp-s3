@@ -1,15 +1,15 @@
-import { from } from 'rxjs'
-import { map, mergeMap, toArray } from 'rxjs/operators'
+import {from} from 'rxjs'
+import {map, mergeMap, tap, toArray} from 'rxjs/operators'
 import * as sharp from 'sharp'
-import { lookup } from 'mime-types'
-import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
-import { StorageEngine } from 'multer'
-import { Request } from 'express'
-import { S3 } from 'aws-sdk'
+import {contentType, lookup} from 'mime-types'
+import {ManagedUpload} from 'aws-sdk/lib/s3/managed_upload'
+import {StorageEngine} from 'multer'
+import {Request} from 'express'
+import {S3} from 'aws-sdk'
 import getSharpOptions from './get-sharp-options'
 import transformer from './transformer'
 import defaultKey from './get-filename'
-import { S3StorageOptions, SharpOptions } from './types'
+import {S3StorageOptions, SharpOptions} from './types'
 
 export type EStream = {
   stream: NodeJS.ReadableStream & sharp.Sharp
@@ -58,13 +58,12 @@ export class S3Storage implements StorageEngine {
   }
 
   public _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void) {
-    const { opts, sharpOpts } = this
+    const { opts } = this
     const { mimetype, stream } = file
     const params = {
       Bucket: opts.Bucket,
       ACL: opts.ACL,
       CacheControl: opts.CacheControl,
-      ContentType: opts.ContentType,
       Metadata: opts.Metadata,
       StorageClass: opts.StorageClass,
       ServerSideEncryption: opts.ServerSideEncryption,
@@ -114,7 +113,6 @@ export class S3Storage implements StorageEngine {
     const {
       ACL,
       ContentDisposition,
-      ContentType: optsContentType,
       StorageClass,
       ServerSideEncryption,
       Metadata,
@@ -142,7 +140,7 @@ export class S3Storage implements StorageEngine {
                 return {
                   ...size,
                   ...result.info,
-                  ContentType: result.info.format,
+                  ContentType: contentType(result.info.format) || `image/${result.info.format}`,
                   currentSize: result.info.size,
                 }
               })
@@ -163,7 +161,7 @@ export class S3Storage implements StorageEngine {
               ContentType,
               Key: size.directory ? `${size.directory}/${key}` : key,
             }
-            
+
             const upload = opts.s3.upload(newParams)
             let currentSize = { [size.suffix]: 0 }
             upload.on('httpUploadProgress', function(ev) {
@@ -171,10 +169,10 @@ export class S3Storage implements StorageEngine {
                 currentSize[size.suffix] = ev.total
               }
             })
-            const upload$ = from(
+            return from(
               upload.promise().then((result) => {
                 // tslint:disable-next-line
-                const { Body, ...rest } = size
+                const {Body, ...rest} = size
                 return {
                   ...result,
                   ...rest,
@@ -182,7 +180,6 @@ export class S3Storage implements StorageEngine {
                 }
               })
             )
-            return upload$
           }),
           toArray()
         )
@@ -190,7 +187,7 @@ export class S3Storage implements StorageEngine {
           const mapArrayToObject: { [k: string]: any } = res.reduce(
             (acc, curr) => {
               // tslint:disable-next-line
-              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr
+              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr;
               acc[curr.suffix] = {
                 ACL,
                 ContentDisposition,
@@ -199,9 +196,9 @@ export class S3Storage implements StorageEngine {
                 Metadata,
                 ...rest,
                 size: currentSize,
-                ContentType: optsContentType || ContentType
+                ContentType: contentType(format) || `image/${format}`,
+                mimeType: lookup(format) || `image/${format}`
               }
-              mimetype = lookup(ContentType) || `image/${ContentType}`
               return acc
             }, {})
 
@@ -220,8 +217,8 @@ export class S3Storage implements StorageEngine {
       )
       meta$
         .pipe(
-          map((metadata) => {
-            newParams.ContentType = opts.ContentType || metadata.info.format
+          tap((metadata) => {
+            newParams.ContentType = contentType(metadata.info.format) || `image/${metadata.info.format}`
             return metadata
           }),
           mergeMap((metadata) => {
@@ -231,12 +228,11 @@ export class S3Storage implements StorageEngine {
                 currentSize = ev.total
               }
             })
-            const upload$ = from(
+            return from(
               upload.promise().then((res) => {
-                return { ...res, ...metadata.info }
+                return {...res, ...metadata.info}
               })
             )
-            return upload$
           })
         )
         .subscribe((result) => {
@@ -250,8 +246,8 @@ export class S3Storage implements StorageEngine {
             Metadata,
             ...rest,
             size: currentSize || size,
-            ContentType: opts.ContentType || format,
-            mimetype: lookup(result.format) || `image/${result.format}`
+            ContentType: contentType(result.format) || `image/${result.format}`,
+            mimetype: lookup(result.format) || `image/${result.format}`,
           }
           cb(null, JSON.parse(JSON.stringify(endRes)))
         }, cb)
@@ -277,7 +273,7 @@ export class S3Storage implements StorageEngine {
       const endRes = {
         size: currentSize,
         ACL: opts.ACL,
-        ContentType: opts.ContentType || mimetype,
+        ContentType: contentType(mimetype) || mimetype,
         ContentDisposition: opts.ContentDisposition,
         StorageClass: opts.StorageClass,
         ServerSideEncryption: opts.ServerSideEncryption,

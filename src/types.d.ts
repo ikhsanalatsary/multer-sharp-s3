@@ -18,6 +18,7 @@ import {
   SharpOptions as SharpOptionsCore
 } from 'sharp'
 import { S3 } from 'aws-sdk'
+import Omit = jest.Omit;
 
 export declare interface Size {
   width?: number
@@ -118,7 +119,7 @@ export declare interface SharpOptions {
 }
 
 export declare interface CloudStorageOptions
-  extends Partial<S3.Types.PutObjectRequest> {
+  extends Partial<Omit<S3.Types.PutObjectRequest, 'ContentType'>> {
   Key?: any
   multiple?: boolean
   s3: S3
