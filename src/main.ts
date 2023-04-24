@@ -58,7 +58,7 @@ export class S3Storage implements StorageEngine {
   }
 
   public _handleFile(req: Request, file: EFile, cb: (error?: any, info?: Info) => void) {
-    const { opts, sharpOpts } = this
+    const { opts } = this
     const { mimetype, stream } = file
     const params = {
       Bucket: opts.Bucket,
@@ -174,7 +174,7 @@ export class S3Storage implements StorageEngine {
             const upload$ = from(
               upload.promise().then((result) => {
                 // tslint:disable-next-line
-                const { Body, ...rest } = size
+                const { ...rest } = size
                 return {
                   ...result,
                   ...rest,
@@ -190,8 +190,8 @@ export class S3Storage implements StorageEngine {
           const mapArrayToObject: { [k: string]: any } = res.reduce(
             (acc, curr) => {
               // tslint:disable-next-line
-              const { suffix, ContentType, size, format, channels, options, currentSize, ...rest } = curr
-              acc[curr.suffix] = {
+              const { suffix, ContentType, currentSize, ...rest } = curr
+              acc[suffix] = {
                 ACL,
                 ContentDisposition,
                 StorageClass,
@@ -241,7 +241,7 @@ export class S3Storage implements StorageEngine {
         )
         .subscribe((result) => {
           // tslint:disable-next-line
-          const { size, format, channels, ...rest } = result
+          const { size, format, ...rest } = result
           const endRes = {
             ACL,
             ContentDisposition,
@@ -251,7 +251,7 @@ export class S3Storage implements StorageEngine {
             ...rest,
             size: currentSize || size,
             ContentType: opts.ContentType || format,
-            mimetype: lookup(result.format) || `image/${result.format}`
+            mimetype: lookup(format) || `image/${format}`
           }
           cb(null, JSON.parse(JSON.stringify(endRes)))
         }, cb)
