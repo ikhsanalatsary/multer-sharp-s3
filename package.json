@@ -80,7 +80,7 @@
   "dependencies": {
     "mime-types": "2.1.24",
     "rxjs": "6.5.1",
-    "sharp": "^0.30.0"
+    "sharp": "^0.32.6"
   },
   "jest": {
     "moduleFileExtensions": [
